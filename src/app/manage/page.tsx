@@ -2,12 +2,13 @@ import { DbSetupHint } from "@/components/DbSetupHint";
 import { ManageBoard } from "@/components/ManageBoard";
 import { SiteHeader } from "@/components/SiteHeader";
 import { listAppsOrdered } from "@/lib/apps";
-import { getSiteSettings } from "@/lib/settings";
+import { getSiteSettings, siteSettingsSupportLogoColumns } from "@/lib/settings";
 
 export const dynamic = "force-dynamic";
 
 export default async function ManagePage() {
   const settings = await getSiteSettings();
+  const supportsLogoStorage = await siteSettingsSupportLogoColumns();
 
   let apps;
   try {
@@ -25,7 +26,11 @@ export default async function ManagePage() {
   return (
     <>
       <SiteHeader settings={settings} />
-      <ManageBoard initialApps={apps} settings={settings} />
+      <ManageBoard
+        initialApps={apps}
+        settings={settings}
+        supportsLogoStorage={supportsLogoStorage}
+      />
     </>
   );
 }

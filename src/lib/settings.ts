@@ -1,45 +1,31 @@
-import { eq, sql } from "drizzle-orm";
+import { sql } from "drizzle-orm";
 import { cache } from "react";
 import { getDb } from "./db";
+import type { SiteSettingsRow } from "./schema";
 import { DEFAULT_SITE_SETTINGS } from "./site-defaults";
-import { siteSettings, type SiteSettingsRow } from "./schema";
 
 export { DEFAULT_SITE_SETTINGS } from "./site-defaults";
-
-const legacySettingsSelection = {
-  id: siteSettings.id,
-  brandLine1: siteSettings.brandLine1,
-  brandLine2: siteSettings.brandLine2,
-  headerTitle: siteSettings.headerTitle,
-  headerSubtitle: siteSettings.headerSubtitle,
-  heroTitle: siteSettings.heroTitle,
-  heroLede: siteSettings.heroLede,
-  emptyStateText: siteSettings.emptyStateText,
-  manageAddTitle: siteSettings.manageAddTitle,
-  manageAddBlurb: siteSettings.manageAddBlurb,
-  manageOrderTitle: siteSettings.manageOrderTitle,
-  manageOrderBlurb: siteSettings.manageOrderBlurb,
-  manageEmptyDragText: siteSettings.manageEmptyDragText,
-  loginTitle: siteSettings.loginTitle,
-  loginLede: siteSettings.loginLede,
-  loginBackLabel: siteSettings.loginBackLabel,
-  colorPrimary: siteSettings.colorPrimary,
-  colorPrimaryDark: siteSettings.colorPrimaryDark,
-  colorText: siteSettings.colorText,
-  colorTextMuted: siteSettings.colorTextMuted,
-  colorBorder: siteSettings.colorBorder,
-  colorPageBg: siteSettings.colorPageBg,
-  colorCardBg: siteSettings.colorCardBg,
-  colorCardAccent: siteSettings.colorCardAccent,
-  colorUrlOnCard: siteSettings.colorUrlOnCard,
-  cardRadiusPx: siteSettings.cardRadiusPx,
-  cardShadow: siteSettings.cardShadow,
-  updatedAt: siteSettings.updatedAt,
-};
 
 type ColumnRow = {
   column_name: string;
 };
+
+type RawSettingsRow = Partial<SiteSettingsRow>;
+
+function normalizeSettingsRow(row: RawSettingsRow, supportsLogoStorage: boolean): SiteSettingsRow {
+  return {
+    ...DEFAULT_SITE_SETTINGS,
+    ...row,
+    logoUrl: supportsLogoStorage ? row.logoUrl ?? null : null,
+    logoAlt: supportsLogoStorage ? row.logoAlt ?? null : null,
+    updatedAt:
+      row.updatedAt instanceof Date
+        ? row.updatedAt
+        : row.updatedAt
+          ? new Date(String(row.updatedAt))
+          : null,
+  };
+}
 
 export async function siteSettingsSupportLogoColumns(): Promise<boolean> {
   try {
@@ -47,53 +33,104 @@ export async function siteSettingsSupportLogoColumns(): Promise<boolean> {
     const result = await db.execute(sql`
       select column_name
       from information_schema.columns
-      where table_schema = current_schema()
-        and table_name = 'site_settings'
+      where table_name = 'site_settings'
         and column_name in ('logo_url', 'logo_alt')
     `);
 
-    const names = new Set(
-      (result.rows as ColumnRow[]).map((row) => String(row.column_name)),
-    );
-
+    const names = new Set((result.rows as ColumnRow[]).map((row) => String(row.column_name)));
     return names.has("logo_url") && names.has("logo_alt");
   } catch {
     return false;
   }
 }
 
-async function getLegacySiteSettings(): Promise<SiteSettingsRow | null> {
+async function querySiteSettings(supportsLogoStorage: boolean): Promise<SiteSettingsRow | null> {
   const db = getDb();
-  const rows = await db
-    .select(legacySettingsSelection)
-    .from(siteSettings)
-    .where(eq(siteSettings.id, 1))
-    .limit(1);
+  const result = supportsLogoStorage
+    ? await db.execute<RawSettingsRow>(sql`
+        select
+          "id",
+          "logo_url" as "logoUrl",
+          "logo_alt" as "logoAlt",
+          "brand_line1" as "brandLine1",
+          "brand_line2" as "brandLine2",
+          "header_title" as "headerTitle",
+          "header_subtitle" as "headerSubtitle",
+          "hero_title" as "heroTitle",
+          "hero_lede" as "heroLede",
+          "empty_state_text" as "emptyStateText",
+          "manage_add_title" as "manageAddTitle",
+          "manage_add_blurb" as "manageAddBlurb",
+          "manage_order_title" as "manageOrderTitle",
+          "manage_order_blurb" as "manageOrderBlurb",
+          "manage_empty_drag_text" as "manageEmptyDragText",
+          "login_title" as "loginTitle",
+          "login_lede" as "loginLede",
+          "login_back_label" as "loginBackLabel",
+          "color_primary" as "colorPrimary",
+          "color_primary_dark" as "colorPrimaryDark",
+          "color_text" as "colorText",
+          "color_text_muted" as "colorTextMuted",
+          "color_border" as "colorBorder",
+          "color_page_bg" as "colorPageBg",
+          "color_card_bg" as "colorCardBg",
+          "color_card_accent" as "colorCardAccent",
+          "color_url_on_card" as "colorUrlOnCard",
+          "card_radius_px" as "cardRadiusPx",
+          "card_shadow" as "cardShadow",
+          "updated_at" as "updatedAt"
+        from "site_settings"
+        where "id" = 1
+        limit 1
+      `)
+    : await db.execute<RawSettingsRow>(sql`
+        select
+          "id",
+          "brand_line1" as "brandLine1",
+          "brand_line2" as "brandLine2",
+          "header_title" as "headerTitle",
+          "header_subtitle" as "headerSubtitle",
+          "hero_title" as "heroTitle",
+          "hero_lede" as "heroLede",
+          "empty_state_text" as "emptyStateText",
+          "manage_add_title" as "manageAddTitle",
+          "manage_add_blurb" as "manageAddBlurb",
+          "manage_order_title" as "manageOrderTitle",
+          "manage_order_blurb" as "manageOrderBlurb",
+          "manage_empty_drag_text" as "manageEmptyDragText",
+          "login_title" as "loginTitle",
+          "login_lede" as "loginLede",
+          "login_back_label" as "loginBackLabel",
+          "color_primary" as "colorPrimary",
+          "color_primary_dark" as "colorPrimaryDark",
+          "color_text" as "colorText",
+          "color_text_muted" as "colorTextMuted",
+          "color_border" as "colorBorder",
+          "color_page_bg" as "colorPageBg",
+          "color_card_bg" as "colorCardBg",
+          "color_card_accent" as "colorCardAccent",
+          "color_url_on_card" as "colorUrlOnCard",
+          "card_radius_px" as "cardRadiusPx",
+          "card_shadow" as "cardShadow",
+          "updated_at" as "updatedAt"
+        from "site_settings"
+        where "id" = 1
+        limit 1
+      `);
 
-  if (!rows[0]) return null;
-
-  return {
-    ...DEFAULT_SITE_SETTINGS,
-    ...rows[0],
-    logoUrl: null,
-    logoAlt: null,
-  };
+  const row = result.rows[0];
+  return row ? normalizeSettingsRow(row, supportsLogoStorage) : null;
 }
 
 export const getSiteSettings = cache(async (): Promise<SiteSettingsRow> => {
   try {
-    const db = getDb();
-    if (await siteSettingsSupportLogoColumns()) {
-      const rows = await db.select().from(siteSettings).where(eq(siteSettings.id, 1)).limit(1);
-      if (rows[0]) return rows[0];
-    } else {
-      const legacy = await getLegacySiteSettings();
-      if (legacy) return legacy;
-    }
+    const supportsLogoStorage = await siteSettingsSupportLogoColumns();
+    const settings = await querySiteSettings(supportsLogoStorage);
+    if (settings) return settings;
   } catch {
     try {
-      const legacy = await getLegacySiteSettings();
-      if (legacy) return legacy;
+      const settings = await querySiteSettings(false);
+      if (settings) return settings;
     } catch {
       /* table missing or DB down */
     }

@@ -9,6 +9,7 @@ import { DEFAULT_SITE_SETTINGS } from "@/lib/site-defaults";
 
 type Props = {
   settings: SiteSettingsRow;
+  supportsLogoStorage: boolean;
 };
 
 function previewText(value: string, fallback: string): string {
@@ -16,7 +17,7 @@ function previewText(value: string, fallback: string): string {
   return trimmed || fallback;
 }
 
-export function SiteAppearanceForm({ settings }: Props) {
+export function SiteAppearanceForm({ settings, supportsLogoStorage }: Props) {
   const router = useRouter();
   const [pending, setPending] = useState(false);
   const [banner, setBanner] = useState<string | null>(null);
@@ -53,7 +54,7 @@ export function SiteAppearanceForm({ settings }: Props) {
   const previewSubtitle = previewText(headerSubtitle, DEFAULT_SITE_SETTINGS.headerSubtitle);
   const previewBrandLine1 = previewText(brandLine1, DEFAULT_SITE_SETTINGS.brandLine1);
   const previewBrandLine2 = previewText(brandLine2, DEFAULT_SITE_SETTINGS.brandLine2);
-  const previewLogoUrl = logoUrl.trim() || null;
+  const previewLogoUrl = supportsLogoStorage ? logoUrl.trim() || null : null;
   const previewLogoAlt = previewText(logoAlt, `${previewTitle} logo`);
 
   return (
@@ -67,8 +68,10 @@ export function SiteAppearanceForm({ settings }: Props) {
           </p>
         </div>
         <div className="max-w-sm rounded-[18px] bg-[var(--wsu-bg)] px-4 py-3 text-sm leading-6 text-[var(--wsu-gray-mid)] ring-1 ring-black/5">
-          Leave a field blank to fall back to the built-in default copy or colors. Add a logo URL
-          to replace the text mark in the upper-left header.
+          Leave a field blank to fall back to the built-in default copy or colors.
+          {supportsLogoStorage
+            ? " Add a logo URL to replace the text mark in the upper-left header."
+            : " The header currently uses the text mark because this database has not enabled logo storage yet."}
         </div>
       </div>
 
@@ -79,28 +82,42 @@ export function SiteAppearanceForm({ settings }: Props) {
           <fieldset className="space-y-4 rounded-[18px] border border-[var(--wsu-gray-light)] p-5">
             <legend className="px-2 text-sm font-semibold text-[var(--wsu-gray)]">Logo and header</legend>
 
-            <label className="block text-xs font-semibold uppercase tracking-wide text-[var(--wsu-gray-mid)]">
-              Logo image URL <span className="font-normal normal-case">(optional)</span>
-              <input
-                name="logoUrl"
-                defaultValue={settings.logoUrl ?? ""}
-                onChange={(e) => setLogoUrl(e.target.value)}
-                inputMode="url"
-                className="mt-1 w-full rounded-xl border border-[var(--wsu-gray-light)] px-3 py-2.5 text-sm"
-                placeholder="https://example.edu/logo.svg or /logo.png"
-              />
-            </label>
+            {supportsLogoStorage ? (
+              <>
+                <label className="block text-xs font-semibold uppercase tracking-wide text-[var(--wsu-gray-mid)]">
+                  Logo image URL <span className="font-normal normal-case">(optional)</span>
+                  <input
+                    name="logoUrl"
+                    defaultValue={settings.logoUrl ?? ""}
+                    onChange={(e) => setLogoUrl(e.target.value)}
+                    inputMode="url"
+                    className="mt-1 w-full rounded-xl border border-[var(--wsu-gray-light)] px-3 py-2.5 text-sm"
+                    placeholder="https://example.edu/logo.svg or /logo.png"
+                  />
+                </label>
 
-            <label className="block text-xs font-semibold uppercase tracking-wide text-[var(--wsu-gray-mid)]">
-              Logo alt text <span className="font-normal normal-case">(optional)</span>
-              <input
-                name="logoAlt"
-                defaultValue={settings.logoAlt ?? ""}
-                onChange={(e) => setLogoAlt(e.target.value)}
-                className="mt-1 w-full rounded-xl border border-[var(--wsu-gray-light)] px-3 py-2.5 text-sm"
-                placeholder="Graduate School logo"
-              />
-            </label>
+                <label className="block text-xs font-semibold uppercase tracking-wide text-[var(--wsu-gray-mid)]">
+                  Logo alt text <span className="font-normal normal-case">(optional)</span>
+                  <input
+                    name="logoAlt"
+                    defaultValue={settings.logoAlt ?? ""}
+                    onChange={(e) => setLogoAlt(e.target.value)}
+                    className="mt-1 w-full rounded-xl border border-[var(--wsu-gray-light)] px-3 py-2.5 text-sm"
+                    placeholder="Graduate School logo"
+                  />
+                </label>
+              </>
+            ) : (
+              <>
+                <input type="hidden" name="logoUrl" value="" />
+                <input type="hidden" name="logoAlt" value="" />
+                <div className="rounded-[16px] bg-[var(--wsu-bg)] px-4 py-3 text-sm leading-6 text-[var(--wsu-gray-mid)] ring-1 ring-black/5">
+                  Logo storage is unavailable until the database migration adds the `logo_url` and
+                  `logo_alt` columns. The rest of the page and appearance settings will still save
+                  normally.
+                </div>
+              </>
+            )}
 
             <div className="grid gap-4 sm:grid-cols-2">
               <label className="block text-xs font-semibold uppercase tracking-wide text-[var(--wsu-gray-mid)]">
@@ -159,8 +176,9 @@ export function SiteAppearanceForm({ settings }: Props) {
               />
             </div>
             <p className="mt-4 text-sm leading-6 text-[var(--wsu-gray-mid)]">
-              Wide or tall logos scale naturally without a surrounding box. If you leave the logo
-              URL blank, the header uses the text mark instead.
+              {supportsLogoStorage
+                ? "Wide or tall logos scale naturally without a surrounding box. If you leave the logo URL blank, the header uses the text mark instead."
+                : "The preview shows the text mark layout that will be used until logo storage is enabled in the database."}
             </p>
           </aside>
         </div>

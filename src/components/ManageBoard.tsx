@@ -129,9 +129,11 @@ function TabButton({
 export function ManageBoard({
   initialApps,
   settings,
+  supportsLogoStorage,
 }: {
   initialApps: AppCard[];
   settings: SiteSettingsRow;
+  supportsLogoStorage: boolean;
 }) {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<AdminTab>("appearance");
@@ -231,7 +233,11 @@ export function ManageBoard({
         hidden={activeTab !== "appearance"}
         className={activeTab === "appearance" ? "block" : "hidden"}
       >
-        <SiteAppearanceForm key={settings.updatedAt?.valueOf() ?? "defaults"} settings={settings} />
+        <SiteAppearanceForm
+          key={settings.updatedAt?.valueOf() ?? "defaults"}
+          settings={settings}
+          supportsLogoStorage={supportsLogoStorage}
+        />
       </section>
 
       <section

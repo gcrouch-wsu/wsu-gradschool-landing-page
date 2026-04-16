@@ -25,6 +25,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
         <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4 px-5 py-4">
           <BrandLockup
             href="/"
+            className="w-full max-w-[42rem]"
             brandLine1={settings.brandLine1}
             brandLine2={settings.brandLine2}
             headerTitle={settings.headerTitle}

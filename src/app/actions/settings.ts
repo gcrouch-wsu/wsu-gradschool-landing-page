@@ -2,9 +2,9 @@
 
 import { cookies } from "next/headers";
 import { revalidatePath } from "next/cache";
+import { sql } from "drizzle-orm";
 import { z } from "zod";
 import { getDb } from "@/lib/db";
-import { siteSettings } from "@/lib/schema";
 import {
   DEFAULT_SITE_SETTINGS,
   siteSettingsSupportLogoColumns,
@@ -81,6 +81,8 @@ const settingsSchema = z.object({
   cardShadow: shadowOrBlank,
 });
 
+type NormalizedSettings = ReturnType<typeof buildNormalizedSettings>;
+
 function readString(formData: FormData, key: string): string {
   return String(formData.get(key) ?? "");
 }
@@ -90,12 +92,244 @@ function fallbackText(value: string, fallback: string): string {
   return trimmed || fallback;
 }
 
+function buildNormalizedSettings(v: z.infer<typeof settingsSchema>) {
+  const headerTitle = fallbackText(v.headerTitle, DEFAULT_SITE_SETTINGS.headerTitle);
+  const logoUrl = v.logoUrl || null;
+
+  return {
+    logoUrl,
+    logoAlt: logoUrl ? fallbackText(v.logoAlt, `${headerTitle} logo`) : null,
+    brandLine1: fallbackText(v.brandLine1, DEFAULT_SITE_SETTINGS.brandLine1),
+    brandLine2: fallbackText(v.brandLine2, DEFAULT_SITE_SETTINGS.brandLine2),
+    headerTitle,
+    headerSubtitle: fallbackText(v.headerSubtitle, DEFAULT_SITE_SETTINGS.headerSubtitle),
+    heroTitle: fallbackText(v.heroTitle, DEFAULT_SITE_SETTINGS.heroTitle),
+    heroLede: fallbackText(v.heroLede, DEFAULT_SITE_SETTINGS.heroLede),
+    emptyStateText: fallbackText(v.emptyStateText, DEFAULT_SITE_SETTINGS.emptyStateText),
+    manageAddTitle: fallbackText(v.manageAddTitle, DEFAULT_SITE_SETTINGS.manageAddTitle),
+    manageAddBlurb: fallbackText(v.manageAddBlurb, DEFAULT_SITE_SETTINGS.manageAddBlurb),
+    manageOrderTitle: fallbackText(v.manageOrderTitle, DEFAULT_SITE_SETTINGS.manageOrderTitle),
+    manageOrderBlurb: fallbackText(v.manageOrderBlurb, DEFAULT_SITE_SETTINGS.manageOrderBlurb),
+    manageEmptyDragText: fallbackText(
+      v.manageEmptyDragText,
+      DEFAULT_SITE_SETTINGS.manageEmptyDragText,
+    ),
+    loginTitle: fallbackText(v.loginTitle, DEFAULT_SITE_SETTINGS.loginTitle),
+    loginLede: fallbackText(v.loginLede, DEFAULT_SITE_SETTINGS.loginLede),
+    loginBackLabel: fallbackText(v.loginBackLabel, DEFAULT_SITE_SETTINGS.loginBackLabel),
+    colorPrimary: fallbackText(v.colorPrimary, DEFAULT_SITE_SETTINGS.colorPrimary),
+    colorPrimaryDark: fallbackText(v.colorPrimaryDark, DEFAULT_SITE_SETTINGS.colorPrimaryDark),
+    colorText: fallbackText(v.colorText, DEFAULT_SITE_SETTINGS.colorText),
+    colorTextMuted: fallbackText(v.colorTextMuted, DEFAULT_SITE_SETTINGS.colorTextMuted),
+    colorBorder: fallbackText(v.colorBorder, DEFAULT_SITE_SETTINGS.colorBorder),
+    colorPageBg: fallbackText(v.colorPageBg, DEFAULT_SITE_SETTINGS.colorPageBg),
+    colorCardBg: fallbackText(v.colorCardBg, DEFAULT_SITE_SETTINGS.colorCardBg),
+    colorCardAccent: fallbackText(v.colorCardAccent, DEFAULT_SITE_SETTINGS.colorCardAccent),
+    colorUrlOnCard: fallbackText(v.colorUrlOnCard, DEFAULT_SITE_SETTINGS.colorUrlOnCard),
+    cardRadiusPx: v.cardRadiusPx ?? DEFAULT_SITE_SETTINGS.cardRadiusPx,
+    cardShadow: v.cardShadow ?? DEFAULT_SITE_SETTINGS.cardShadow,
+    updatedAt: new Date(),
+  };
+}
+
 async function requireSession() {
   const jar = await cookies();
   const token = jar.get(SESSION_COOKIE)?.value;
   if (!token || !(await verifySessionToken(token))) {
     throw new Error("Unauthorized");
   }
+}
+
+async function saveLegacySettings(settings: NormalizedSettings) {
+  const db = getDb();
+  await db.execute(sql`
+    insert into "site_settings" (
+      "id",
+      "brand_line1",
+      "brand_line2",
+      "header_title",
+      "header_subtitle",
+      "hero_title",
+      "hero_lede",
+      "empty_state_text",
+      "manage_add_title",
+      "manage_add_blurb",
+      "manage_order_title",
+      "manage_order_blurb",
+      "manage_empty_drag_text",
+      "login_title",
+      "login_lede",
+      "login_back_label",
+      "color_primary",
+      "color_primary_dark",
+      "color_text",
+      "color_text_muted",
+      "color_border",
+      "color_page_bg",
+      "color_card_bg",
+      "color_card_accent",
+      "color_url_on_card",
+      "card_radius_px",
+      "card_shadow",
+      "updated_at"
+    ) values (
+      1,
+      ${settings.brandLine1},
+      ${settings.brandLine2},
+      ${settings.headerTitle},
+      ${settings.headerSubtitle},
+      ${settings.heroTitle},
+      ${settings.heroLede},
+      ${settings.emptyStateText},
+      ${settings.manageAddTitle},
+      ${settings.manageAddBlurb},
+      ${settings.manageOrderTitle},
+      ${settings.manageOrderBlurb},
+      ${settings.manageEmptyDragText},
+      ${settings.loginTitle},
+      ${settings.loginLede},
+      ${settings.loginBackLabel},
+      ${settings.colorPrimary},
+      ${settings.colorPrimaryDark},
+      ${settings.colorText},
+      ${settings.colorTextMuted},
+      ${settings.colorBorder},
+      ${settings.colorPageBg},
+      ${settings.colorCardBg},
+      ${settings.colorCardAccent},
+      ${settings.colorUrlOnCard},
+      ${settings.cardRadiusPx},
+      ${settings.cardShadow},
+      ${settings.updatedAt}
+    )
+    on conflict ("id") do update set
+      "brand_line1" = excluded."brand_line1",
+      "brand_line2" = excluded."brand_line2",
+      "header_title" = excluded."header_title",
+      "header_subtitle" = excluded."header_subtitle",
+      "hero_title" = excluded."hero_title",
+      "hero_lede" = excluded."hero_lede",
+      "empty_state_text" = excluded."empty_state_text",
+      "manage_add_title" = excluded."manage_add_title",
+      "manage_add_blurb" = excluded."manage_add_blurb",
+      "manage_order_title" = excluded."manage_order_title",
+      "manage_order_blurb" = excluded."manage_order_blurb",
+      "manage_empty_drag_text" = excluded."manage_empty_drag_text",
+      "login_title" = excluded."login_title",
+      "login_lede" = excluded."login_lede",
+      "login_back_label" = excluded."login_back_label",
+      "color_primary" = excluded."color_primary",
+      "color_primary_dark" = excluded."color_primary_dark",
+      "color_text" = excluded."color_text",
+      "color_text_muted" = excluded."color_text_muted",
+      "color_border" = excluded."color_border",
+      "color_page_bg" = excluded."color_page_bg",
+      "color_card_bg" = excluded."color_card_bg",
+      "color_card_accent" = excluded."color_card_accent",
+      "color_url_on_card" = excluded."color_url_on_card",
+      "card_radius_px" = excluded."card_radius_px",
+      "card_shadow" = excluded."card_shadow",
+      "updated_at" = excluded."updated_at"
+  `);
+}
+
+async function saveLogoSettings(settings: NormalizedSettings) {
+  const db = getDb();
+  await db.execute(sql`
+    insert into "site_settings" (
+      "id",
+      "logo_url",
+      "logo_alt",
+      "brand_line1",
+      "brand_line2",
+      "header_title",
+      "header_subtitle",
+      "hero_title",
+      "hero_lede",
+      "empty_state_text",
+      "manage_add_title",
+      "manage_add_blurb",
+      "manage_order_title",
+      "manage_order_blurb",
+      "manage_empty_drag_text",
+      "login_title",
+      "login_lede",
+      "login_back_label",
+      "color_primary",
+      "color_primary_dark",
+      "color_text",
+      "color_text_muted",
+      "color_border",
+      "color_page_bg",
+      "color_card_bg",
+      "color_card_accent",
+      "color_url_on_card",
+      "card_radius_px",
+      "card_shadow",
+      "updated_at"
+    ) values (
+      1,
+      ${settings.logoUrl},
+      ${settings.logoAlt},
+      ${settings.brandLine1},
+      ${settings.brandLine2},
+      ${settings.headerTitle},
+      ${settings.headerSubtitle},
+      ${settings.heroTitle},
+      ${settings.heroLede},
+      ${settings.emptyStateText},
+      ${settings.manageAddTitle},
+      ${settings.manageAddBlurb},
+      ${settings.manageOrderTitle},
+      ${settings.manageOrderBlurb},
+      ${settings.manageEmptyDragText},
+      ${settings.loginTitle},
+      ${settings.loginLede},
+      ${settings.loginBackLabel},
+      ${settings.colorPrimary},
+      ${settings.colorPrimaryDark},
+      ${settings.colorText},
+      ${settings.colorTextMuted},
+      ${settings.colorBorder},
+      ${settings.colorPageBg},
+      ${settings.colorCardBg},
+      ${settings.colorCardAccent},
+      ${settings.colorUrlOnCard},
+      ${settings.cardRadiusPx},
+      ${settings.cardShadow},
+      ${settings.updatedAt}
+    )
+    on conflict ("id") do update set
+      "logo_url" = excluded."logo_url",
+      "logo_alt" = excluded."logo_alt",
+      "brand_line1" = excluded."brand_line1",
+      "brand_line2" = excluded."brand_line2",
+      "header_title" = excluded."header_title",
+      "header_subtitle" = excluded."header_subtitle",
+      "hero_title" = excluded."hero_title",
+      "hero_lede" = excluded."hero_lede",
+      "empty_state_text" = excluded."empty_state_text",
+      "manage_add_title" = excluded."manage_add_title",
+      "manage_add_blurb" = excluded."manage_add_blurb",
+      "manage_order_title" = excluded."manage_order_title",
+      "manage_order_blurb" = excluded."manage_order_blurb",
+      "manage_empty_drag_text" = excluded."manage_empty_drag_text",
+      "login_title" = excluded."login_title",
+      "login_lede" = excluded."login_lede",
+      "login_back_label" = excluded."login_back_label",
+      "color_primary" = excluded."color_primary",
+      "color_primary_dark" = excluded."color_primary_dark",
+      "color_text" = excluded."color_text",
+      "color_text_muted" = excluded."color_text_muted",
+      "color_border" = excluded."color_border",
+      "color_page_bg" = excluded."color_page_bg",
+      "color_card_bg" = excluded."color_card_bg",
+      "color_card_accent" = excluded."color_card_accent",
+      "color_url_on_card" = excluded."color_url_on_card",
+      "card_radius_px" = excluded."card_radius_px",
+      "card_shadow" = excluded."card_shadow",
+      "updated_at" = excluded."updated_at"
+  `);
 }
 
 export async function updateSiteSettingsAction(formData: FormData) {
@@ -137,73 +371,55 @@ export async function updateSiteSettingsAction(formData: FormData) {
     return { ok: false as const, error: parsed.error.flatten().fieldErrors };
   }
 
-  const v = parsed.data;
-  const headerTitle = fallbackText(v.headerTitle, DEFAULT_SITE_SETTINGS.headerTitle);
-  const logoUrl = v.logoUrl || null;
-  const supportsLogoColumns = await siteSettingsSupportLogoColumns();
-
-  const baseSettings = {
-    id: 1,
-    brandLine1: fallbackText(v.brandLine1, DEFAULT_SITE_SETTINGS.brandLine1),
-    brandLine2: fallbackText(v.brandLine2, DEFAULT_SITE_SETTINGS.brandLine2),
-    headerTitle,
-    headerSubtitle: fallbackText(v.headerSubtitle, DEFAULT_SITE_SETTINGS.headerSubtitle),
-    heroTitle: fallbackText(v.heroTitle, DEFAULT_SITE_SETTINGS.heroTitle),
-    heroLede: fallbackText(v.heroLede, DEFAULT_SITE_SETTINGS.heroLede),
-    emptyStateText: fallbackText(v.emptyStateText, DEFAULT_SITE_SETTINGS.emptyStateText),
-    manageAddTitle: fallbackText(v.manageAddTitle, DEFAULT_SITE_SETTINGS.manageAddTitle),
-    manageAddBlurb: fallbackText(v.manageAddBlurb, DEFAULT_SITE_SETTINGS.manageAddBlurb),
-    manageOrderTitle: fallbackText(v.manageOrderTitle, DEFAULT_SITE_SETTINGS.manageOrderTitle),
-    manageOrderBlurb: fallbackText(v.manageOrderBlurb, DEFAULT_SITE_SETTINGS.manageOrderBlurb),
-    manageEmptyDragText: fallbackText(
-      v.manageEmptyDragText,
-      DEFAULT_SITE_SETTINGS.manageEmptyDragText,
-    ),
-    loginTitle: fallbackText(v.loginTitle, DEFAULT_SITE_SETTINGS.loginTitle),
-    loginLede: fallbackText(v.loginLede, DEFAULT_SITE_SETTINGS.loginLede),
-    loginBackLabel: fallbackText(v.loginBackLabel, DEFAULT_SITE_SETTINGS.loginBackLabel),
-    colorPrimary: fallbackText(v.colorPrimary, DEFAULT_SITE_SETTINGS.colorPrimary),
-    colorPrimaryDark: fallbackText(v.colorPrimaryDark, DEFAULT_SITE_SETTINGS.colorPrimaryDark),
-    colorText: fallbackText(v.colorText, DEFAULT_SITE_SETTINGS.colorText),
-    colorTextMuted: fallbackText(v.colorTextMuted, DEFAULT_SITE_SETTINGS.colorTextMuted),
-    colorBorder: fallbackText(v.colorBorder, DEFAULT_SITE_SETTINGS.colorBorder),
-    colorPageBg: fallbackText(v.colorPageBg, DEFAULT_SITE_SETTINGS.colorPageBg),
-    colorCardBg: fallbackText(v.colorCardBg, DEFAULT_SITE_SETTINGS.colorCardBg),
-    colorCardAccent: fallbackText(v.colorCardAccent, DEFAULT_SITE_SETTINGS.colorCardAccent),
-    colorUrlOnCard: fallbackText(v.colorUrlOnCard, DEFAULT_SITE_SETTINGS.colorUrlOnCard),
-    cardRadiusPx: v.cardRadiusPx ?? DEFAULT_SITE_SETTINGS.cardRadiusPx,
-    cardShadow: v.cardShadow ?? DEFAULT_SITE_SETTINGS.cardShadow,
-    updatedAt: new Date(),
-  };
-
-  const nextSettings = supportsLogoColumns
-    ? {
-        ...baseSettings,
-        logoUrl,
-        logoAlt: logoUrl ? fallbackText(v.logoAlt, `${headerTitle} logo`) : null,
-      }
-    : baseSettings;
+  const normalized = buildNormalizedSettings(parsed.data);
+  const requestedLogo = Boolean(normalized.logoUrl);
 
   try {
-    const db = getDb();
-    await db
-      .insert(siteSettings)
-      .values(nextSettings)
-      .onConflictDoUpdate({
-        target: siteSettings.id,
-        set: nextSettings,
-      });
+    const supportsLogoStorage = await siteSettingsSupportLogoColumns();
+    if (supportsLogoStorage) {
+      await saveLogoSettings(normalized);
+    } else {
+      await saveLegacySettings(normalized);
+    }
   } catch (error) {
-    return {
-      ok: false as const,
-      error: {
-        formErrors: [
-          error instanceof Error
-            ? error.message
-            : "Could not save settings right now.",
-        ],
-      },
-    };
+    const message = error instanceof Error ? error.message : "Could not save settings right now.";
+    const missingLogoColumn =
+      message.includes("logo_url") || message.includes("logo_alt") || message.includes("site_settings");
+
+    if (missingLogoColumn) {
+      try {
+        await saveLegacySettings(normalized);
+      } catch (retryError) {
+        return {
+          ok: false as const,
+          error: {
+            formErrors: [
+              retryError instanceof Error
+                ? retryError.message
+                : "Could not save settings right now.",
+            ],
+          },
+        };
+      }
+
+      if (requestedLogo) {
+        return {
+          ok: false as const,
+          error: {
+            logoUrl: [
+              "Logo storage is not available until the database migration is applied. Other settings were saved.",
+            ],
+          },
+        };
+      }
+    } else {
+      return {
+        ok: false as const,
+        error: {
+          formErrors: [message],
+        },
+      };
+    }
   }
 
   revalidatePath("/", "layout");

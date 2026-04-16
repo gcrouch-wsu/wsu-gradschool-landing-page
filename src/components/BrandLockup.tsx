@@ -21,11 +21,11 @@ function BrandMark({
 }: Omit<BrandLockupProps, "className" | "headerSubtitle" | "href">) {
   if (logoUrl) {
     return (
-      <div className="flex max-h-16 max-w-[11rem] min-w-0 items-center">
+      <div className="flex min-w-0 max-w-[9rem] items-center sm:max-w-[10.5rem] lg:max-w-[12rem]">
         <img
           src={logoUrl}
           alt={logoAlt || `${headerTitle} logo`}
-          className="block max-h-16 w-auto max-w-[11rem] object-contain"
+          className="block max-h-14 w-auto max-w-full object-contain sm:max-h-16"
         />
       </div>
     );
@@ -57,7 +57,9 @@ export function BrandLockup({
   className = "",
 }: BrandLockupProps) {
   const content = (
-    <div className={`flex min-w-0 items-center gap-4 ${className}`.trim()}>
+    <div
+      className={`grid min-w-0 max-w-full gap-3 sm:grid-cols-[auto_minmax(0,1fr)] sm:items-center sm:gap-4 ${className}`.trim()}
+    >
       <BrandMark
         brandLine1={brandLine1}
         brandLine2={brandLine2}
@@ -65,10 +67,14 @@ export function BrandLockup({
         logoUrl={logoUrl}
         logoAlt={logoAlt}
       />
-      <div className="min-w-0">
-        <div className="text-lg font-bold leading-tight text-[var(--wsu-gray)]">{headerTitle}</div>
+      <div className="min-w-0 max-w-full">
+        <div className="max-w-full text-lg font-bold leading-tight text-[var(--wsu-gray)] text-pretty">
+          {headerTitle}
+        </div>
         {headerSubtitle ? (
-          <p className="mt-1 text-sm font-medium text-[var(--wsu-gray-mid)]">{headerSubtitle}</p>
+          <p className="mt-1 max-w-full text-sm font-medium text-[var(--wsu-gray-mid)] text-pretty">
+            {headerSubtitle}
+          </p>
         ) : null}
       </div>
     </div>
