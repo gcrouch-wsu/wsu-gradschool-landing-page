@@ -8,7 +8,6 @@ import {
   deleteApp,
   getMaxSortOrder,
   insertApp,
-  listAppsOrdered,
   updateSortOrders,
 } from "@/lib/apps";
 

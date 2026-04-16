@@ -1,11 +1,23 @@
 import { AppTile } from "@/components/AppTile";
+import { DbSetupHint } from "@/components/DbSetupHint";
 import { SiteHeader } from "@/components/SiteHeader";
 import { listAppsOrdered } from "@/lib/apps";
 
 export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
-  const apps = await listAppsOrdered();
+  let apps;
+  try {
+    apps = await listAppsOrdered();
+  } catch (e) {
+    const message = e instanceof Error ? e.message : String(e);
+    return (
+      <>
+        <SiteHeader />
+        <DbSetupHint message={message} />
+      </>
+    );
+  }
 
   return (
     <>
