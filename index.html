@@ -1,0 +1,568 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Graduate School Tools</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --wsu-crimson: #981e32;
+        --wsu-crimson-dark: #6d1524;
+        --wsu-gray: #393939;
+        --wsu-gray-mid: #5e6a71;
+        --wsu-gray-light: #e2e2e2;
+        --wsu-white: #ffffff;
+        --wsu-bg: #f7f5f5;
+        --shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
+        --radius: 10px;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        font-family: "Montserrat", system-ui, -apple-system, sans-serif;
+        background: var(--wsu-bg);
+        color: var(--wsu-gray);
+      }
+
+      .strip {
+        height: 6px;
+        background: linear-gradient(
+          90deg,
+          var(--wsu-crimson) 0%,
+          var(--wsu-crimson) 40%,
+          var(--wsu-gray-mid) 40%,
+          var(--wsu-gray-mid) 100%
+        );
+      }
+
+      header {
+        background: var(--wsu-white);
+        border-bottom: 1px solid var(--wsu-gray-light);
+        padding: 1.25rem 1.5rem;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 1rem;
+      }
+
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 0.85rem;
+      }
+
+      .brand-mark {
+        width: 44px;
+        height: 44px;
+        border-radius: 8px;
+        background: var(--wsu-crimson);
+        color: var(--wsu-white);
+        font-weight: 700;
+        font-size: 0.7rem;
+        line-height: 1.05;
+        display: grid;
+        place-items: center;
+        text-align: center;
+        letter-spacing: 0.02em;
+      }
+
+      .brand h1 {
+        margin: 0;
+        font-size: 1.15rem;
+        font-weight: 700;
+        color: var(--wsu-gray);
+      }
+
+      .brand p {
+        margin: 0.15rem 0 0;
+        font-size: 0.8rem;
+        color: var(--wsu-gray-mid);
+        font-weight: 500;
+      }
+
+      .tabs {
+        display: flex;
+        gap: 0.35rem;
+        background: var(--wsu-gray-light);
+        padding: 0.25rem;
+        border-radius: 999px;
+      }
+
+      .tabs button {
+        border: none;
+        background: transparent;
+        font-family: inherit;
+        font-weight: 600;
+        font-size: 0.8rem;
+        padding: 0.45rem 1rem;
+        border-radius: 999px;
+        cursor: pointer;
+        color: var(--wsu-gray-mid);
+      }
+
+      .tabs button[aria-selected="true"] {
+        background: var(--wsu-white);
+        color: var(--wsu-crimson);
+        box-shadow: var(--shadow);
+      }
+
+      main {
+        max-width: 960px;
+        margin: 0 auto;
+        padding: 1.75rem 1.25rem 3rem;
+      }
+
+      .panel {
+        background: var(--wsu-white);
+        border-radius: var(--radius);
+        padding: 1.5rem;
+        box-shadow: var(--shadow);
+        border: 1px solid var(--wsu-gray-light);
+      }
+
+      .tiles {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+        gap: 1rem;
+      }
+
+      .tile {
+        display: block;
+        text-decoration: none;
+        color: inherit;
+        border-radius: var(--radius);
+        padding: 1.25rem 1.1rem;
+        background: var(--wsu-white);
+        border: 1px solid var(--wsu-gray-light);
+        box-shadow: var(--shadow);
+        transition: transform 0.15s ease, border-color 0.15s ease;
+        position: relative;
+        overflow: hidden;
+      }
+
+      .tile::before {
+        content: "";
+        position: absolute;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        width: 4px;
+        background: var(--tile-accent, var(--wsu-crimson));
+      }
+
+      .tile:hover {
+        transform: translateY(-2px);
+        border-color: color-mix(in srgb, var(--wsu-crimson) 35%, var(--wsu-gray-light));
+      }
+
+      .tile h2 {
+        margin: 0 0 0.35rem;
+        font-size: 1.05rem;
+        font-weight: 700;
+        color: var(--wsu-gray);
+      }
+
+      .tile span {
+        font-size: 0.78rem;
+        color: var(--wsu-gray-mid);
+        word-break: break-all;
+      }
+
+      .empty {
+        text-align: center;
+        padding: 2.5rem 1rem;
+        color: var(--wsu-gray-mid);
+        font-weight: 500;
+      }
+
+      /* Admin */
+      .admin-form {
+        display: grid;
+        gap: 0.75rem;
+        margin-bottom: 1.25rem;
+      }
+
+      @media (min-width: 560px) {
+        .admin-form {
+          grid-template-columns: 1fr 2fr auto auto;
+          align-items: end;
+        }
+      }
+
+      label {
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
+        font-size: 0.72rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        color: var(--wsu-gray-mid);
+      }
+
+      input[type="text"],
+      input[type="url"],
+      input[type="color"] {
+        font: inherit;
+        padding: 0.55rem 0.65rem;
+        border: 1px solid var(--wsu-gray-light);
+        border-radius: 8px;
+        color: var(--wsu-gray);
+      }
+
+      input:focus {
+        outline: 2px solid color-mix(in srgb, var(--wsu-crimson) 45%, transparent);
+        outline-offset: 1px;
+      }
+
+      .btn {
+        font-family: inherit;
+        font-weight: 600;
+        font-size: 0.85rem;
+        border: none;
+        border-radius: 8px;
+        padding: 0.6rem 1rem;
+        cursor: pointer;
+      }
+
+      .btn-primary {
+        background: var(--wsu-crimson);
+        color: var(--wsu-white);
+      }
+
+      .btn-primary:hover {
+        background: var(--wsu-crimson-dark);
+      }
+
+      .btn-ghost {
+        background: transparent;
+        color: var(--wsu-crimson);
+        border: 1px solid color-mix(in srgb, var(--wsu-crimson) 35%, var(--wsu-gray-light));
+      }
+
+      .admin-list {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+      }
+
+      .admin-row {
+        display: grid;
+        grid-template-columns: auto 1fr auto;
+        gap: 0.65rem;
+        align-items: center;
+        padding: 0.65rem 0.75rem;
+        background: var(--wsu-bg);
+        border-radius: 8px;
+        border: 1px dashed transparent;
+      }
+
+      .admin-row.dragging {
+        opacity: 0.55;
+      }
+
+      .admin-row.drag-over {
+        border-color: var(--wsu-crimson);
+        background: color-mix(in srgb, var(--wsu-crimson) 6%, var(--wsu-white));
+      }
+
+      .drag-handle {
+        cursor: grab;
+        color: var(--wsu-gray-mid);
+        font-size: 1.1rem;
+        user-select: none;
+        padding: 0.15rem;
+      }
+
+      .drag-handle:active {
+        cursor: grabbing;
+      }
+
+      .admin-meta {
+        min-width: 0;
+      }
+
+      .admin-meta strong {
+        display: block;
+        font-size: 0.9rem;
+        color: var(--wsu-gray);
+      }
+
+      .admin-meta small {
+        color: var(--wsu-gray-mid);
+        font-size: 0.75rem;
+        word-break: break-all;
+      }
+
+      .hint {
+        margin-top: 1rem;
+        font-size: 0.78rem;
+        color: var(--wsu-gray-mid);
+        line-height: 1.45;
+      }
+
+      footer {
+        text-align: center;
+        padding: 1rem;
+        font-size: 0.75rem;
+        color: var(--wsu-gray-mid);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="strip" aria-hidden="true"></div>
+    <header>
+      <div class="brand">
+        <div class="brand-mark">WSU</div>
+        <div>
+          <h1>Graduate School</h1>
+          <p>Internal tools directory</p>
+        </div>
+      </div>
+      <div class="tabs" role="tablist">
+        <button type="button" id="tab-landing" role="tab" aria-selected="true">Apps</button>
+        <button type="button" id="tab-admin" role="tab" aria-selected="false">Manage</button>
+      </div>
+    </header>
+
+    <main>
+      <section id="view-landing" class="panel" aria-labelledby="tab-landing">
+        <div id="tiles" class="tiles"></div>
+        <p id="landing-empty" class="empty" hidden>No apps yet. Switch to Manage to add links.</p>
+      </section>
+
+      <section id="view-admin" class="panel" hidden aria-labelledby="tab-admin">
+        <form class="admin-form" id="add-form">
+          <label>
+            Name
+            <input type="text" id="f-name" placeholder="Newsletter editor" required />
+          </label>
+          <label>
+            URL
+            <input type="url" id="f-url" placeholder="https://…" required />
+          </label>
+          <label>
+            Accent
+            <input type="color" id="f-accent" value="#981e32" title="Left stripe color" />
+          </label>
+          <button type="submit" class="btn btn-primary">Add tile</button>
+        </form>
+
+        <p style="margin: 0 0 0.5rem; font-size: 0.8rem; font-weight: 600; color: var(--wsu-gray-mid)">
+          Drag rows to reorder
+        </p>
+        <ul id="admin-list" class="admin-list"></ul>
+
+        <div style="margin-top: 1rem; display: flex; gap: 0.5rem; flex-wrap: wrap">
+          <button type="button" class="btn btn-ghost" id="btn-export">Copy JSON</button>
+          <button type="button" class="btn btn-ghost" id="btn-import">Paste JSON</button>
+          <button type="button" class="btn btn-ghost" id="btn-reset">Reset demo tiles</button>
+        </div>
+        <p class="hint">
+          Data is stored in this browser only (<code>localStorage</code>). For a shared directory, deploy
+          this page and edit from one machine, or replace storage with a small API later.
+        </p>
+      </section>
+    </main>
+
+    <footer>Washington State University · Graduate School</footer>
+
+    <script>
+      (function () {
+        const STORAGE_KEY = "wsu-grad-tools-hub:v1";
+
+        const defaultTiles = [
+          { id: "1", title: "Example app", url: "https://example.com", accent: "#981e32" },
+          { id: "2", title: "WSU main site", url: "https://wsu.edu", accent: "#5e6a71" },
+        ];
+
+        function uid() {
+          return crypto.randomUUID ? crypto.randomUUID() : String(Date.now()) + Math.random();
+        }
+
+        function load() {
+          try {
+            const raw = localStorage.getItem(STORAGE_KEY);
+            if (!raw) return { tiles: [...defaultTiles] };
+            const data = JSON.parse(raw);
+            if (!data || !Array.isArray(data.tiles)) return { tiles: [...defaultTiles] };
+            return data;
+          } catch {
+            return { tiles: [...defaultTiles] };
+          }
+        }
+
+        function save(state) {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+        }
+
+        let state = load();
+        let dragId = null;
+
+        const tabLanding = document.getElementById("tab-landing");
+        const tabAdmin = document.getElementById("tab-admin");
+        const viewLanding = document.getElementById("view-landing");
+        const viewAdmin = document.getElementById("view-admin");
+        const tilesEl = document.getElementById("tiles");
+        const landingEmpty = document.getElementById("landing-empty");
+        const adminList = document.getElementById("admin-list");
+        const addForm = document.getElementById("add-form");
+
+        function setTab(which) {
+          const isLanding = which === "landing";
+          tabLanding.setAttribute("aria-selected", isLanding);
+          tabAdmin.setAttribute("aria-selected", !isLanding);
+          viewLanding.hidden = !isLanding;
+          viewAdmin.hidden = isLanding;
+        }
+
+        tabLanding.addEventListener("click", () => setTab("landing"));
+        tabAdmin.addEventListener("click", () => setTab("admin"));
+
+        function renderLanding() {
+          tilesEl.innerHTML = "";
+          if (!state.tiles.length) {
+            landingEmpty.hidden = false;
+            return;
+          }
+          landingEmpty.hidden = true;
+          for (const t of state.tiles) {
+            const a = document.createElement("a");
+            a.className = "tile";
+            a.href = t.url;
+            a.target = "_blank";
+            a.rel = "noopener noreferrer";
+            a.style.setProperty("--tile-accent", t.accent || "#981e32");
+            a.innerHTML = "<h2></h2><span></span>";
+            a.querySelector("h2").textContent = t.title;
+            a.querySelector("span").textContent = t.url;
+            tilesEl.appendChild(a);
+          }
+        }
+
+        function renderAdmin() {
+          adminList.innerHTML = "";
+          state.tiles.forEach((t, index) => {
+            const li = document.createElement("li");
+            li.className = "admin-row";
+            li.dataset.id = t.id;
+            li.draggable = true;
+            li.innerHTML =
+              '<span class="drag-handle" title="Drag">⠿</span>' +
+              '<div class="admin-meta"><strong></strong><small></small></div>' +
+              '<button type="button" class="btn btn-ghost" data-action="remove">Remove</button>';
+            li.querySelector("strong").textContent = t.title;
+            li.querySelector("small").textContent = t.url;
+
+            li.addEventListener("dragstart", (e) => {
+              dragId = t.id;
+              li.classList.add("dragging");
+              e.dataTransfer.effectAllowed = "move";
+              e.dataTransfer.setData("text/plain", t.id);
+            });
+            li.addEventListener("dragend", () => {
+              dragId = null;
+              li.classList.remove("dragging");
+              adminList.querySelectorAll(".admin-row").forEach((r) => r.classList.remove("drag-over"));
+            });
+            li.addEventListener("dragover", (e) => {
+              e.preventDefault();
+              e.dataTransfer.dropEffect = "move";
+              if (t.id !== dragId) li.classList.add("drag-over");
+            });
+            li.addEventListener("dragleave", () => li.classList.remove("drag-over"));
+            li.addEventListener("drop", (e) => {
+              e.preventDefault();
+              li.classList.remove("drag-over");
+              const fromId = e.dataTransfer.getData("text/plain") || dragId;
+              if (!fromId || fromId === t.id) return;
+              const fromIndex = state.tiles.findIndex((x) => x.id === fromId);
+              const toIndex = state.tiles.findIndex((x) => x.id === t.id);
+              if (fromIndex < 0 || toIndex < 0) return;
+              const [moved] = state.tiles.splice(fromIndex, 1);
+              state.tiles.splice(toIndex, 0, moved);
+              save(state);
+              renderAll();
+            });
+
+            li.querySelector('[data-action="remove"]').addEventListener("click", () => {
+              state.tiles = state.tiles.filter((x) => x.id !== t.id);
+              save(state);
+              renderAll();
+            });
+
+            adminList.appendChild(li);
+          });
+        }
+
+        function renderAll() {
+          renderLanding();
+          renderAdmin();
+        }
+
+        addForm.addEventListener("submit", (e) => {
+          e.preventDefault();
+          const title = document.getElementById("f-name").value.trim();
+          const url = document.getElementById("f-url").value.trim();
+          const accent = document.getElementById("f-accent").value;
+          if (!title || !url) return;
+          state.tiles.push({ id: uid(), title, url, accent });
+          save(state);
+          addForm.reset();
+          document.getElementById("f-accent").value = "#981e32";
+          renderAll();
+        });
+
+        document.getElementById("btn-export").addEventListener("click", async () => {
+          const text = JSON.stringify(state, null, 2);
+          try {
+            await navigator.clipboard.writeText(text);
+            alert("JSON copied to clipboard.");
+          } catch {
+            prompt("Copy this JSON:", text);
+          }
+        });
+
+        document.getElementById("btn-import").addEventListener("click", () => {
+          const raw = prompt('Paste JSON ({ "tiles": [...] }):');
+          if (!raw) return;
+          try {
+            const parsed = JSON.parse(raw);
+            if (!parsed || !Array.isArray(parsed.tiles)) throw new Error("Need tiles array");
+            state = { tiles: parsed.tiles };
+            save(state);
+            renderAll();
+          } catch (err) {
+            alert("Invalid JSON: " + (err && err.message));
+          }
+        });
+
+        document.getElementById("btn-reset").addEventListener("click", () => {
+          if (!confirm("Replace all tiles with demo examples?")) return;
+          state = { tiles: defaultTiles.map((x) => ({ ...x, id: uid() })) };
+          save(state);
+          renderAll();
+        });
+
+        if (location.hash === "#admin") setTab("admin");
+
+        renderAll();
+      })();
+    </script>
+  </body>
+</html>
