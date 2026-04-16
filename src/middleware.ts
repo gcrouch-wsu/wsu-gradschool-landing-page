@@ -8,6 +8,8 @@ export async function middleware(req: NextRequest) {
     return NextResponse.next();
   }
 
+  const nextPath = `${req.nextUrl.pathname}${req.nextUrl.search}`;
+
   const secret = process.env.SESSION_SECRET;
   if (!secret || secret.length < 32) {
     return NextResponse.json(
@@ -19,7 +21,7 @@ export async function middleware(req: NextRequest) {
   const token = req.cookies.get(SESSION_COOKIE)?.value;
   if (!token) {
     const login = new URL("/login", req.url);
-    login.searchParams.set("next", req.nextUrl.pathname);
+    login.searchParams.set("next", nextPath);
     return NextResponse.redirect(login);
   }
 
@@ -28,6 +30,7 @@ export async function middleware(req: NextRequest) {
     return NextResponse.next();
   } catch {
     const login = new URL("/login", req.url);
+    login.searchParams.set("next", nextPath);
     return NextResponse.redirect(login);
   }
 }

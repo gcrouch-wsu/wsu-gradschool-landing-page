@@ -17,7 +17,7 @@ export async function loginWithPassword(formData: FormData): Promise<LoginResult
   const password = String(formData.get("password") ?? "").trim();
   const expected = process.env.ADMIN_PASSWORD?.trim();
   if (!expected || password !== expected) {
-    return { ok: false, error: "Invalid password" };
+    return { ok: false, error: "Incorrect password. Try again." };
   }
   let token: string;
   try {

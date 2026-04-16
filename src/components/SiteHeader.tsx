@@ -1,8 +1,9 @@
 import { cookies } from "next/headers";
 import Link from "next/link";
+import { logoutAction } from "@/app/actions/auth";
+import { BrandLockup } from "@/components/BrandLockup";
 import type { SiteSettingsRow } from "@/lib/schema";
 import { SESSION_COOKIE, verifySessionToken } from "@/lib/session";
-import { logoutAction } from "@/app/actions/auth";
 
 type Props = {
   settings: SiteSettingsRow;
@@ -19,39 +20,37 @@ export async function SiteHeader({ settings }: Props) {
         className="h-1.5 w-full bg-gradient-to-r from-[var(--wsu-crimson)] from-[40%] to-[var(--wsu-gray-mid)] to-[40%]"
         aria-hidden
       />
-      <header className="flex flex-wrap items-center justify-between gap-4 border-b border-[var(--wsu-gray-light)] bg-white px-5 py-4">
-        <Link href="/" className="flex items-center gap-3 no-underline">
-          <div className="grid h-11 w-11 place-items-center rounded-lg bg-[var(--wsu-crimson)] text-center text-[0.65rem] font-bold leading-tight tracking-wide text-white">
-            {settings.brandLine1}
-            <br />
-            {settings.brandLine2}
-          </div>
-          <div>
-            <h1 className="m-0 text-lg font-bold text-[var(--wsu-gray)]">{settings.headerTitle}</h1>
-            <p className="m-0 mt-0.5 text-xs font-medium text-[var(--wsu-gray-mid)]">
-              {settings.headerSubtitle}
-            </p>
-          </div>
-        </Link>
-        <nav className="flex items-center gap-3">
-          {signedIn ? (
-            <form action={logoutAction}>
-              <button
-                type="submit"
-                className="rounded-full border border-[var(--wsu-gray-light)] bg-white px-4 py-2 text-sm font-semibold text-[var(--wsu-gray)] hover:bg-[var(--wsu-bg)]"
-              >
-                Sign out
-              </button>
-            </form>
-          ) : (
+      <header className="border-b border-[var(--wsu-gray-light)] bg-white">
+        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4 px-5 py-4">
+          <BrandLockup
+            href="/"
+            brandLine1={settings.brandLine1}
+            brandLine2={settings.brandLine2}
+            headerTitle={settings.headerTitle}
+            headerSubtitle={settings.headerSubtitle}
+            logoUrl={settings.logoUrl}
+            logoAlt={settings.logoAlt}
+          />
+
+          <nav className="flex items-center gap-3">
             <Link
-              href="/login"
-              className="rounded-full bg-[var(--wsu-crimson)] px-4 py-2 text-sm font-semibold text-white hover:bg-[var(--wsu-crimson-dark)]"
+              href={signedIn ? "/manage" : "/login?next=/manage"}
+              className="rounded-full border border-[var(--wsu-gray-light)] bg-white px-4 py-2 text-sm font-semibold text-[var(--wsu-gray)] transition hover:bg-[var(--wsu-bg)]"
             >
-              Admin login
+              Manage apps
             </Link>
-          )}
-        </nav>
+            {signedIn ? (
+              <form action={logoutAction}>
+                <button
+                  type="submit"
+                  className="rounded-full bg-[var(--wsu-crimson)] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[var(--wsu-crimson-dark)]"
+                >
+                  Sign out
+                </button>
+              </form>
+            ) : null}
+          </nav>
+        </div>
       </header>
     </>
   );

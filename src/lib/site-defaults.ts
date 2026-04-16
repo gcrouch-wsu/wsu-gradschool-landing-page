@@ -1,0 +1,37 @@
+import type { SiteSettingsRow } from "@/lib/schema";
+
+export const DEFAULT_SITE_SETTINGS: SiteSettingsRow = {
+  id: 1,
+  logoUrl: null,
+  logoAlt: null,
+  brandLine1: "WSU",
+  brandLine2: "Grad",
+  headerTitle: "Graduate School Tools",
+  headerSubtitle: "Internal directory",
+  heroTitle: "Applications",
+  heroLede:
+    "This directory is public. Use Manage apps to sign in and update links, descriptions, ordering, and branding.",
+  emptyStateText: "No applications yet. Use Manage apps to add the first card.",
+  manageAddTitle: "Add application",
+  manageAddBlurb:
+    "Add a title and URL for each application. Descriptions and branding are optional. Reorder cards below and changes save automatically.",
+  manageOrderTitle: "Card order",
+  manageOrderBlurb: "Drag by the handle. The order here matches the public landing page.",
+  manageEmptyDragText: "No cards yet. Add one above.",
+  loginTitle: "Sign in to manage the directory",
+  loginLede:
+    "Use the shared admin password to edit cards, update branding, and manage the header logo. You will land on the manage page after you sign in.",
+  loginBackLabel: "Back to directory",
+  colorPrimary: "#981e32",
+  colorPrimaryDark: "#6d1524",
+  colorText: "#393939",
+  colorTextMuted: "#5e6a71",
+  colorBorder: "#e2e2e2",
+  colorPageBg: "#f7f5f5",
+  colorCardBg: "#ffffff",
+  colorCardAccent: "#981e32",
+  colorUrlOnCard: "#981e32",
+  cardRadiusPx: 10,
+  cardShadow: "md",
+  updatedAt: null,
+};

@@ -56,7 +56,7 @@ function SortableRow({
         {...attributes}
         {...listeners}
       >
-        <span className="text-lg leading-none text-[var(--wsu-gray-mid)]">⋮⋮</span>
+        <span className="font-mono text-lg leading-none text-[var(--wsu-gray-mid)]">::</span>
       </button>
       <div className="min-w-0 flex-1">
         <AppTile app={app} />
@@ -93,7 +93,7 @@ export function ManageBoard({
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
   );
 
-  const ids = useMemo(() => items.map((a) => a.id), [items]);
+  const ids = useMemo(() => items.map((app) => app.id), [items]);
 
   const syncFromServer = useCallback(() => {
     router.refresh();
@@ -102,13 +102,13 @@ export function ManageBoard({
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
     if (!over || active.id === over.id) return;
-    const oldIndex = items.findIndex((a) => a.id === active.id);
-    const newIndex = items.findIndex((a) => a.id === over.id);
+    const oldIndex = items.findIndex((app) => app.id === active.id);
+    const newIndex = items.findIndex((app) => app.id === over.id);
     if (oldIndex < 0 || newIndex < 0) return;
     const next = arrayMove(items, oldIndex, newIndex);
     setItems(next);
     startListTransition(async () => {
-      await reorderAppsAction(next.map((a) => a.id));
+      await reorderAppsAction(next.map((app) => app.id));
       syncFromServer();
     });
   };
@@ -139,14 +139,14 @@ export function ManageBoard({
     setRemovingId(id);
     startListTransition(async () => {
       await deleteAppAction(id);
-      setItems((prev) => prev.filter((a) => a.id !== id));
+      setItems((prev) => prev.filter((app) => app.id !== id));
       setRemovingId(null);
       syncFromServer();
     });
   };
 
   const dataSignature = initialApps
-    .map((a) => `${a.id}|${a.sortOrder}|${a.title}|${a.url}|${a.description ?? ""}`)
+    .map((app) => `${app.id}|${app.sortOrder}|${app.title}|${app.url}|${app.description ?? ""}`)
     .join("~~");
 
   useEffect(() => {
@@ -158,11 +158,20 @@ export function ManageBoard({
       <SiteAppearanceForm key={settings.updatedAt?.valueOf() ?? "defaults"} settings={settings} />
 
       <h2 className="mb-2 text-xl font-bold text-[var(--wsu-gray)]">{settings.manageAddTitle}</h2>
-      <p className="mb-4 whitespace-pre-wrap text-sm text-[var(--wsu-gray-mid)]">{settings.manageAddBlurb}</p>
+      <p className="mb-4 whitespace-pre-wrap text-sm text-[var(--wsu-gray-mid)]">
+        {settings.manageAddBlurb}
+      </p>
 
-      <form id="add-app-form" action={handleAdd} className="mb-8 space-y-3 rounded-[10px] bg-white p-4 shadow-[0_4px_14px_rgba(0,0,0,0.08)] ring-1 ring-black/5">
+      <form
+        id="add-app-form"
+        action={handleAdd}
+        className="mb-8 space-y-3 rounded-[10px] bg-white p-4 shadow-[0_4px_14px_rgba(0,0,0,0.08)] ring-1 ring-black/5"
+      >
         <div>
-          <label htmlFor="title" className="mb-1 block text-xs font-semibold uppercase tracking-wide text-[var(--wsu-gray-mid)]">
+          <label
+            htmlFor="title"
+            className="mb-1 block text-xs font-semibold uppercase tracking-wide text-[var(--wsu-gray-mid)]"
+          >
             Title
           </label>
           <input
@@ -177,7 +186,10 @@ export function ManageBoard({
           ) : null}
         </div>
         <div>
-          <label htmlFor="url" className="mb-1 block text-xs font-semibold uppercase tracking-wide text-[var(--wsu-gray-mid)]">
+          <label
+            htmlFor="url"
+            className="mb-1 block text-xs font-semibold uppercase tracking-wide text-[var(--wsu-gray-mid)]"
+          >
             URL
           </label>
           <input
@@ -192,8 +204,12 @@ export function ManageBoard({
           ) : null}
         </div>
         <div>
-          <label htmlFor="description" className="mb-1 block text-xs font-semibold uppercase tracking-wide text-[var(--wsu-gray-mid)]">
-            Description <span className="font-normal normal-case text-[var(--wsu-gray-mid)]">(optional)</span>
+          <label
+            htmlFor="description"
+            className="mb-1 block text-xs font-semibold uppercase tracking-wide text-[var(--wsu-gray-mid)]"
+          >
+            Description{" "}
+            <span className="font-normal normal-case text-[var(--wsu-gray-mid)]">(optional)</span>
           </label>
           <textarea
             id="description"
@@ -214,16 +230,20 @@ export function ManageBoard({
           disabled={formPending}
           className="rounded-full bg-[var(--wsu-crimson)] px-5 py-2 text-sm font-semibold text-white hover:bg-[var(--wsu-crimson-dark)] disabled:opacity-60"
         >
-          {formPending ? "Saving…" : "Add card"}
+          {formPending ? "Saving..." : "Add card"}
         </button>
       </form>
 
       <h2 className="mb-2 text-xl font-bold text-[var(--wsu-gray)]">{settings.manageOrderTitle}</h2>
-      <p className="mb-3 whitespace-pre-wrap text-sm text-[var(--wsu-gray-mid)]">{settings.manageOrderBlurb}</p>
+      <p className="mb-3 whitespace-pre-wrap text-sm text-[var(--wsu-gray-mid)]">
+        {settings.manageOrderBlurb}
+      </p>
 
       <div className="min-h-[200px] rounded-[12px] border-2 border-dashed border-[var(--wsu-gray-mid)]/35 bg-[var(--wsu-bg)]/80 p-4">
         {items.length === 0 ? (
-          <p className="py-8 text-center text-sm text-[var(--wsu-gray-mid)]">{settings.manageEmptyDragText}</p>
+          <p className="py-8 text-center text-sm text-[var(--wsu-gray-mid)]">
+            {settings.manageEmptyDragText}
+          </p>
         ) : (
           <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
             <SortableContext items={ids} strategy={verticalListSortingStrategy}>

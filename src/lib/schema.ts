@@ -22,6 +22,8 @@ export type NewAppCard = typeof appCards.$inferInsert;
 /** Single-row site copy + theme (id is always 1). */
 export const siteSettings = pgTable("site_settings", {
   id: smallint("id").primaryKey().default(1),
+  logoUrl: text("logo_url"),
+  logoAlt: text("logo_alt"),
   brandLine1: text("brand_line1").notNull().default("WSU"),
   brandLine2: text("brand_line2").notNull().default("Grad"),
   headerTitle: text("header_title").notNull().default("Graduate School Tools"),
@@ -30,29 +32,29 @@ export const siteSettings = pgTable("site_settings", {
   heroLede: text("hero_lede")
     .notNull()
     .default(
-      "This page is public. Editors sign in with Admin login to add links, descriptions, and ordering.",
+      "This directory is public. Use Manage apps to sign in and update links, descriptions, ordering, and branding.",
     ),
   emptyStateText: text("empty_state_text")
     .notNull()
-    .default("No applications yet. Sign in with Admin login to add cards."),
+    .default("No applications yet. Use Manage apps to add the first card."),
   manageAddTitle: text("manage_add_title").notNull().default("Add application"),
   manageAddBlurb: text("manage_add_blurb")
     .notNull()
     .default(
-      "Titles and URLs appear on the public page. Descriptions are optional. Drag cards in the frame below to set order; changes save automatically.",
+      "Add a title and URL for each application. Descriptions and branding are optional. Reorder cards below and changes save automatically.",
     ),
   manageOrderTitle: text("manage_order_title").notNull().default("Card order"),
   manageOrderBlurb: text("manage_order_blurb")
     .notNull()
-    .default("Drag by the handle. Order matches the public landing page."),
+    .default("Drag by the handle. The order here matches the public landing page."),
   manageEmptyDragText: text("manage_empty_drag_text").notNull().default("No cards yet. Add one above."),
-  loginTitle: text("login_title").notNull().default("Admin sign in"),
+  loginTitle: text("login_title").notNull().default("Sign in to manage the directory"),
   loginLede: text("login_lede")
     .notNull()
     .default(
-      "Enter the shared admin password to manage application cards. The public directory is on the home page.",
+      "Use the shared admin password to edit cards, update branding, and manage the header logo. You will land on the manage page after you sign in.",
     ),
-  loginBackLabel: text("login_back_label").notNull().default("← Back to directory"),
+  loginBackLabel: text("login_back_label").notNull().default("Back to directory"),
   colorPrimary: text("color_primary").notNull().default("#981e32"),
   colorPrimaryDark: text("color_primary_dark").notNull().default("#6d1524"),
   colorText: text("color_text").notNull().default("#393939"),
