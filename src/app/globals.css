@@ -1,0 +1,17 @@
+@import "tailwindcss";
+
+:root {
+  --wsu-crimson: #981e32;
+  --wsu-crimson-dark: #6d1524;
+  --wsu-gray: #393939;
+  --wsu-gray-mid: #5e6a71;
+  --wsu-gray-light: #e2e2e2;
+  --wsu-white: #ffffff;
+  --wsu-bg: #f7f5f5;
+}
+
+body {
+  font-family: var(--font-montserrat), system-ui, sans-serif;
+  background: var(--wsu-bg);
+  color: var(--wsu-gray);
+}

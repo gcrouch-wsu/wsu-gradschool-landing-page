@@ -2,49 +2,65 @@
 
 ## Purpose
 
-This repository hosts a small, static **directory page** for Washington State University Graduate School internal tools. Visitors see a grid of application tiles (name and URL). Editors use an in-page **Manage** view to add, remove, reorder, and lightly style tiles without a separate CMS or database.
+Directory of internal tools for Washington State University Graduate School. **Visitors** open the deployment URL and see a public grid of application cards (title, URL, optional description). **Editors** sign in at `/login`, then use **`/manage`** to add, remove, and drag-reorder cards. Data is stored in **Postgres** (shared for everyone who visits the site).
 
 Remote: [gcrouch-wsu/App-landing-page](https://github.com/gcrouch-wsu/App-landing-page)
 
-## What is in the repo
+## Stack
 
 | Item | Role |
 |------|------|
-| `index.html` | Single-file app: markup, WSU-inspired styling (crimson/gray palette, Montserrat), and client-side behavior. |
+| Next.js (App Router) | UI, server actions, middleware |
+| Neon / Vercel Postgres | `DATABASE_URL`, table `app_card` |
+| Signed cookie session | `SESSION_SECRET` + `ADMIN_PASSWORD` for `/login` → `/manage` |
 
-There is no bundler, framework, or `package.json`. Everything runs in the browser as written.
+The previous single-file `index.html` prototype lives in `legacy/index.html` for reference.
 
-## Behavior
+## Routes
 
-- **Apps** — Renders tiles in order. Each tile links to its URL in a new tab and shows an optional accent color as a left stripe.
-- **Manage** — Form to add a display name, URL, and accent color. Rows can be **dragged** to reorder. **Remove** deletes a tile. **Copy JSON** / **Paste JSON** supports backup and moving data between browsers.
-- **Persistence** — Tile list is stored in `localStorage` under a fixed key (`wsu-grad-tools-hub:v1`). It is per-browser, not shared across users or devices until you add a server or checked-in data file.
+| Path | Access |
+|------|--------|
+| `/` | Public — read-only cards, links open in a new tab |
+| `/login` | Public — admin password form |
+| `/manage` | Requires valid session cookie (set after successful login) |
 
-## Local preview
+Your **public URL** is the Vercel production hostname (or custom domain), e.g. `https://your-project.vercel.app/`.
 
-From this folder:
+## Local development
 
-```bash
-npx --yes serve .
-```
+1. Copy `.env.example` to `.env.local` and set `DATABASE_URL`, `ADMIN_PASSWORD`, and `SESSION_SECRET` (at least 32 characters).
 
-Then open the URL shown in the terminal (typically `http://localhost:3000`). You can also open `index.html` directly in a browser; some features (for example clipboard copy) behave best on `http://localhost` or HTTPS.
+2. Create the table (once). Either run `drizzle/0000_init.sql` in the Neon SQL editor, or from the project root:
+
+   ```bash
+   npm run db:push
+   ```
+
+3. Start the app:
+
+   ```bash
+   npm install
+   npm run dev
+   ```
+
+4. Open `http://localhost:3000`, go to **Admin login**, sign in, then **Manage**.
 
 ## Deploying on Vercel
 
-1. Import the GitHub project in Vercel.
-2. Set the **root directory** to the repository root (where `index.html` lives).
-3. Framework preset: **Other** (no build command).
-4. Output is static: Vercel serves `index.html` at `/`.
+1. Import the GitHub repo in Vercel (framework **Next.js** is auto-detected).
+2. Add a Neon (or Vercel Postgres) database and set **`DATABASE_URL`** in the project environment.
+3. Set **`ADMIN_PASSWORD`** (long random string) and **`SESSION_SECRET`** (≥ 32 random characters).
+4. Run the SQL in `drizzle/0000_init.sql` once against that database (or run `npm run db:push` locally pointed at the same `DATABASE_URL`).
+5. Deploy. The public directory is `/`; editors use `/login` then `/manage`.
 
-Optional: enable **Deployment Protection** or similar if the Manage screen should not be public.
+Optional: **Deployment Protection** on Vercel if you want the whole site gated; otherwise only `/manage` is login-protected.
 
 ## Security note
 
-The Manage view is not authenticated. Anyone who can load the site can change tiles in their own browser storage, or use Manage if you expose it. Treat this as a convenience directory, not a secured admin console, unless you add authentication or gate the deployment.
+Admin auth is a **shared password** plus an **httpOnly** session cookie. It is appropriate for a small trusted editor group. For SSO, audit logs, or per-user roles, replace this with **Clerk**, **Auth0**, or similar and keep the same Postgres-backed card model.
 
 ## Possible next steps
 
-- Replace `localStorage` with a build-time `tiles.json` committed to the repo for a shared, read-only directory.
-- Add a minimal API or server action if multiple editors need one shared source of truth.
-- Swap the placeholder “WSU” block for assets that comply with your unit’s brand guidelines.
+- Swap password login for Clerk or WSU SSO.
+- Per-card accent color (column + color picker), matching the old static prototype.
+- Rate-limit `/login` and rotate `SESSION_SECRET` if a cookie leak is a concern.
