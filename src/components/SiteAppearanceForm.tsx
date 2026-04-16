@@ -12,6 +12,11 @@ type Props = {
   supportsLogoStorage: boolean;
 };
 
+function blankIfDefault(value: string | number | null | undefined, fallback: string | number): string {
+  if (value === null || value === undefined) return "";
+  return String(value) === String(fallback) ? "" : String(value);
+}
+
 function previewText(value: string, fallback: string): string {
   const trimmed = value.trim();
   return trimmed || fallback;
@@ -21,12 +26,82 @@ export function SiteAppearanceForm({ settings, supportsLogoStorage }: Props) {
   const router = useRouter();
   const [pending, setPending] = useState(false);
   const [banner, setBanner] = useState<string | null>(null);
-  const [logoUrl, setLogoUrl] = useState(settings.logoUrl ?? "");
-  const [logoAlt, setLogoAlt] = useState(settings.logoAlt ?? "");
-  const [brandLine1, setBrandLine1] = useState(settings.brandLine1);
-  const [brandLine2, setBrandLine2] = useState(settings.brandLine2);
-  const [headerTitle, setHeaderTitle] = useState(settings.headerTitle);
-  const [headerSubtitle, setHeaderSubtitle] = useState(settings.headerSubtitle);
+  const logoUrlValue = settings.logoUrl ?? "";
+  const logoAltFallback = `${settings.headerTitle} logo`;
+  const logoAltValue =
+    settings.logoAlt && settings.logoAlt === logoAltFallback ? "" : (settings.logoAlt ?? "");
+  const brandLine1Value = blankIfDefault(settings.brandLine1, DEFAULT_SITE_SETTINGS.brandLine1);
+  const brandLine2Value = blankIfDefault(settings.brandLine2, DEFAULT_SITE_SETTINGS.brandLine2);
+  const headerTitleValue = blankIfDefault(settings.headerTitle, DEFAULT_SITE_SETTINGS.headerTitle);
+  const headerSubtitleValue = blankIfDefault(
+    settings.headerSubtitle,
+    DEFAULT_SITE_SETTINGS.headerSubtitle,
+  );
+  const heroTitleValue = blankIfDefault(settings.heroTitle, DEFAULT_SITE_SETTINGS.heroTitle);
+  const heroLedeValue = blankIfDefault(settings.heroLede, DEFAULT_SITE_SETTINGS.heroLede);
+  const emptyStateTextValue = blankIfDefault(
+    settings.emptyStateText,
+    DEFAULT_SITE_SETTINGS.emptyStateText,
+  );
+  const loginTitleValue = blankIfDefault(settings.loginTitle, DEFAULT_SITE_SETTINGS.loginTitle);
+  const loginLedeValue = blankIfDefault(settings.loginLede, DEFAULT_SITE_SETTINGS.loginLede);
+  const loginBackLabelValue = blankIfDefault(
+    settings.loginBackLabel,
+    DEFAULT_SITE_SETTINGS.loginBackLabel,
+  );
+  const manageAddTitleValue = blankIfDefault(
+    settings.manageAddTitle,
+    DEFAULT_SITE_SETTINGS.manageAddTitle,
+  );
+  const manageAddBlurbValue = blankIfDefault(
+    settings.manageAddBlurb,
+    DEFAULT_SITE_SETTINGS.manageAddBlurb,
+  );
+  const manageOrderTitleValue = blankIfDefault(
+    settings.manageOrderTitle,
+    DEFAULT_SITE_SETTINGS.manageOrderTitle,
+  );
+  const manageEmptyDragTextValue = blankIfDefault(
+    settings.manageEmptyDragText,
+    DEFAULT_SITE_SETTINGS.manageEmptyDragText,
+  );
+  const manageOrderBlurbValue = blankIfDefault(
+    settings.manageOrderBlurb,
+    DEFAULT_SITE_SETTINGS.manageOrderBlurb,
+  );
+  const colorPrimaryValue = blankIfDefault(settings.colorPrimary, DEFAULT_SITE_SETTINGS.colorPrimary);
+  const colorPrimaryDarkValue = blankIfDefault(
+    settings.colorPrimaryDark,
+    DEFAULT_SITE_SETTINGS.colorPrimaryDark,
+  );
+  const colorTextValue = blankIfDefault(settings.colorText, DEFAULT_SITE_SETTINGS.colorText);
+  const colorTextMutedValue = blankIfDefault(
+    settings.colorTextMuted,
+    DEFAULT_SITE_SETTINGS.colorTextMuted,
+  );
+  const colorBorderValue = blankIfDefault(settings.colorBorder, DEFAULT_SITE_SETTINGS.colorBorder);
+  const colorPageBgValue = blankIfDefault(settings.colorPageBg, DEFAULT_SITE_SETTINGS.colorPageBg);
+  const colorCardBgValue = blankIfDefault(settings.colorCardBg, DEFAULT_SITE_SETTINGS.colorCardBg);
+  const colorCardAccentValue = blankIfDefault(
+    settings.colorCardAccent,
+    DEFAULT_SITE_SETTINGS.colorCardAccent,
+  );
+  const colorUrlOnCardValue = blankIfDefault(
+    settings.colorUrlOnCard,
+    DEFAULT_SITE_SETTINGS.colorUrlOnCard,
+  );
+  const cardRadiusPxValue = blankIfDefault(
+    settings.cardRadiusPx,
+    DEFAULT_SITE_SETTINGS.cardRadiusPx,
+  );
+  const cardShadowValue = blankIfDefault(settings.cardShadow, DEFAULT_SITE_SETTINGS.cardShadow);
+
+  const [logoUrl, setLogoUrl] = useState(logoUrlValue);
+  const [logoAlt, setLogoAlt] = useState(logoAltValue);
+  const [brandLine1, setBrandLine1] = useState(brandLine1Value);
+  const [brandLine2, setBrandLine2] = useState(brandLine2Value);
+  const [headerTitle, setHeaderTitle] = useState(headerTitleValue);
+  const [headerSubtitle, setHeaderSubtitle] = useState(headerSubtitleValue);
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -68,7 +143,8 @@ export function SiteAppearanceForm({ settings, supportsLogoStorage }: Props) {
           </p>
         </div>
         <div className="max-w-sm rounded-[18px] bg-[var(--wsu-bg)] px-4 py-3 text-sm leading-6 text-[var(--wsu-gray-mid)] ring-1 ring-black/5">
-          Leave a field blank to fall back to the built-in default copy or colors.
+          Boxes stay empty until you add custom copy or colors. Blank fields save back to the
+          built-in defaults.
           {supportsLogoStorage
             ? " Add a logo URL to replace the text mark in the upper-left header."
             : " The header currently uses the text mark because this database has not enabled logo storage yet."}
@@ -88,7 +164,7 @@ export function SiteAppearanceForm({ settings, supportsLogoStorage }: Props) {
                   Logo image URL <span className="font-normal normal-case">(optional)</span>
                   <input
                     name="logoUrl"
-                    defaultValue={settings.logoUrl ?? ""}
+                    defaultValue={logoUrlValue}
                     onChange={(e) => setLogoUrl(e.target.value)}
                     inputMode="url"
                     className="mt-1 w-full rounded-xl border border-[var(--wsu-gray-light)] px-3 py-2.5 text-sm"
@@ -100,7 +176,7 @@ export function SiteAppearanceForm({ settings, supportsLogoStorage }: Props) {
                   Logo alt text <span className="font-normal normal-case">(optional)</span>
                   <input
                     name="logoAlt"
-                    defaultValue={settings.logoAlt ?? ""}
+                    defaultValue={logoAltValue}
                     onChange={(e) => setLogoAlt(e.target.value)}
                     className="mt-1 w-full rounded-xl border border-[var(--wsu-gray-light)] px-3 py-2.5 text-sm"
                     placeholder="Graduate School logo"
@@ -124,18 +200,20 @@ export function SiteAppearanceForm({ settings, supportsLogoStorage }: Props) {
                 Text mark line 1
                 <input
                   name="brandLine1"
-                  defaultValue={settings.brandLine1}
+                  defaultValue={brandLine1Value}
                   onChange={(e) => setBrandLine1(e.target.value)}
                   className="mt-1 w-full rounded-xl border border-[var(--wsu-gray-light)] px-3 py-2.5 text-sm"
+                  placeholder={DEFAULT_SITE_SETTINGS.brandLine1}
                 />
               </label>
               <label className="block text-xs font-semibold uppercase tracking-wide text-[var(--wsu-gray-mid)]">
                 Text mark line 2
                 <input
                   name="brandLine2"
-                  defaultValue={settings.brandLine2}
+                  defaultValue={brandLine2Value}
                   onChange={(e) => setBrandLine2(e.target.value)}
                   className="mt-1 w-full rounded-xl border border-[var(--wsu-gray-light)] px-3 py-2.5 text-sm"
+                  placeholder={DEFAULT_SITE_SETTINGS.brandLine2}
                 />
               </label>
             </div>
@@ -144,9 +222,10 @@ export function SiteAppearanceForm({ settings, supportsLogoStorage }: Props) {
               Site title
               <input
                 name="headerTitle"
-                defaultValue={settings.headerTitle}
+                defaultValue={headerTitleValue}
                 onChange={(e) => setHeaderTitle(e.target.value)}
                 className="mt-1 w-full rounded-xl border border-[var(--wsu-gray-light)] px-3 py-2.5 text-sm"
+                placeholder={DEFAULT_SITE_SETTINGS.headerTitle}
               />
             </label>
 
@@ -154,9 +233,10 @@ export function SiteAppearanceForm({ settings, supportsLogoStorage }: Props) {
               Site subtitle
               <input
                 name="headerSubtitle"
-                defaultValue={settings.headerSubtitle}
+                defaultValue={headerSubtitleValue}
                 onChange={(e) => setHeaderSubtitle(e.target.value)}
                 className="mt-1 w-full rounded-xl border border-[var(--wsu-gray-light)] px-3 py-2.5 text-sm"
+                placeholder={DEFAULT_SITE_SETTINGS.headerSubtitle}
               />
             </label>
           </fieldset>
@@ -191,8 +271,9 @@ export function SiteAppearanceForm({ settings, supportsLogoStorage }: Props) {
               Section heading
               <input
                 name="heroTitle"
-                defaultValue={settings.heroTitle}
+                defaultValue={heroTitleValue}
                 className="mt-1 w-full rounded-xl border border-[var(--wsu-gray-light)] px-3 py-2.5 text-sm"
+                placeholder={DEFAULT_SITE_SETTINGS.heroTitle}
               />
             </label>
 
@@ -201,8 +282,9 @@ export function SiteAppearanceForm({ settings, supportsLogoStorage }: Props) {
               <textarea
                 name="heroLede"
                 rows={4}
-                defaultValue={settings.heroLede}
+                defaultValue={heroLedeValue}
                 className="mt-1 w-full resize-y rounded-xl border border-[var(--wsu-gray-light)] px-3 py-2.5 text-sm"
+                placeholder={DEFAULT_SITE_SETTINGS.heroLede}
               />
             </label>
 
@@ -211,8 +293,9 @@ export function SiteAppearanceForm({ settings, supportsLogoStorage }: Props) {
               <textarea
                 name="emptyStateText"
                 rows={3}
-                defaultValue={settings.emptyStateText}
+                defaultValue={emptyStateTextValue}
                 className="mt-1 w-full resize-y rounded-xl border border-[var(--wsu-gray-light)] px-3 py-2.5 text-sm"
+                placeholder={DEFAULT_SITE_SETTINGS.emptyStateText}
               />
             </label>
           </fieldset>
@@ -224,8 +307,9 @@ export function SiteAppearanceForm({ settings, supportsLogoStorage }: Props) {
               Page title
               <input
                 name="loginTitle"
-                defaultValue={settings.loginTitle}
+                defaultValue={loginTitleValue}
                 className="mt-1 w-full rounded-xl border border-[var(--wsu-gray-light)] px-3 py-2.5 text-sm"
+                placeholder={DEFAULT_SITE_SETTINGS.loginTitle}
               />
             </label>
 
@@ -234,8 +318,9 @@ export function SiteAppearanceForm({ settings, supportsLogoStorage }: Props) {
               <textarea
                 name="loginLede"
                 rows={4}
-                defaultValue={settings.loginLede}
+                defaultValue={loginLedeValue}
                 className="mt-1 w-full resize-y rounded-xl border border-[var(--wsu-gray-light)] px-3 py-2.5 text-sm"
+                placeholder={DEFAULT_SITE_SETTINGS.loginLede}
               />
             </label>
 
@@ -243,8 +328,9 @@ export function SiteAppearanceForm({ settings, supportsLogoStorage }: Props) {
               Back link label
               <input
                 name="loginBackLabel"
-                defaultValue={settings.loginBackLabel}
+                defaultValue={loginBackLabelValue}
                 className="mt-1 w-full rounded-xl border border-[var(--wsu-gray-light)] px-3 py-2.5 text-sm"
+                placeholder={DEFAULT_SITE_SETTINGS.loginBackLabel}
               />
             </label>
           </fieldset>
@@ -258,8 +344,9 @@ export function SiteAppearanceForm({ settings, supportsLogoStorage }: Props) {
               Add application title
               <input
                 name="manageAddTitle"
-                defaultValue={settings.manageAddTitle}
+                defaultValue={manageAddTitleValue}
                 className="mt-1 w-full rounded-xl border border-[var(--wsu-gray-light)] px-3 py-2.5 text-sm"
+                placeholder={DEFAULT_SITE_SETTINGS.manageAddTitle}
               />
             </label>
 
@@ -268,8 +355,9 @@ export function SiteAppearanceForm({ settings, supportsLogoStorage }: Props) {
               <textarea
                 name="manageAddBlurb"
                 rows={4}
-                defaultValue={settings.manageAddBlurb}
+                defaultValue={manageAddBlurbValue}
                 className="mt-1 w-full resize-y rounded-xl border border-[var(--wsu-gray-light)] px-3 py-2.5 text-sm"
+                placeholder={DEFAULT_SITE_SETTINGS.manageAddBlurb}
               />
             </label>
 
@@ -277,8 +365,9 @@ export function SiteAppearanceForm({ settings, supportsLogoStorage }: Props) {
               Card order title
               <input
                 name="manageOrderTitle"
-                defaultValue={settings.manageOrderTitle}
+                defaultValue={manageOrderTitleValue}
                 className="mt-1 w-full rounded-xl border border-[var(--wsu-gray-light)] px-3 py-2.5 text-sm"
+                placeholder={DEFAULT_SITE_SETTINGS.manageOrderTitle}
               />
             </label>
 
@@ -286,8 +375,9 @@ export function SiteAppearanceForm({ settings, supportsLogoStorage }: Props) {
               Empty drag message
               <input
                 name="manageEmptyDragText"
-                defaultValue={settings.manageEmptyDragText}
+                defaultValue={manageEmptyDragTextValue}
                 className="mt-1 w-full rounded-xl border border-[var(--wsu-gray-light)] px-3 py-2.5 text-sm"
+                placeholder={DEFAULT_SITE_SETTINGS.manageEmptyDragText}
               />
             </label>
 
@@ -296,8 +386,9 @@ export function SiteAppearanceForm({ settings, supportsLogoStorage }: Props) {
               <textarea
                 name="manageOrderBlurb"
                 rows={3}
-                defaultValue={settings.manageOrderBlurb}
+                defaultValue={manageOrderBlurbValue}
                 className="mt-1 w-full resize-y rounded-xl border border-[var(--wsu-gray-light)] px-3 py-2.5 text-sm"
+                placeholder={DEFAULT_SITE_SETTINGS.manageOrderBlurb}
               />
             </label>
           </div>
@@ -309,17 +400,42 @@ export function SiteAppearanceForm({ settings, supportsLogoStorage }: Props) {
           <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
             {(
               [
-                ["colorPrimary", "Primary", settings.colorPrimary],
-                ["colorPrimaryDark", "Primary hover", settings.colorPrimaryDark],
-                ["colorText", "Main text", settings.colorText],
-                ["colorTextMuted", "Muted text", settings.colorTextMuted],
-                ["colorBorder", "Borders", settings.colorBorder],
-                ["colorPageBg", "Page background", settings.colorPageBg],
-                ["colorCardBg", "Card background", settings.colorCardBg],
-                ["colorCardAccent", "Card top stripe", settings.colorCardAccent],
-                ["colorUrlOnCard", "Card URL text", settings.colorUrlOnCard],
+                ["colorPrimary", "Primary", colorPrimaryValue, DEFAULT_SITE_SETTINGS.colorPrimary],
+                [
+                  "colorPrimaryDark",
+                  "Primary hover",
+                  colorPrimaryDarkValue,
+                  DEFAULT_SITE_SETTINGS.colorPrimaryDark,
+                ],
+                ["colorText", "Main text", colorTextValue, DEFAULT_SITE_SETTINGS.colorText],
+                [
+                  "colorTextMuted",
+                  "Muted text",
+                  colorTextMutedValue,
+                  DEFAULT_SITE_SETTINGS.colorTextMuted,
+                ],
+                ["colorBorder", "Borders", colorBorderValue, DEFAULT_SITE_SETTINGS.colorBorder],
+                [
+                  "colorPageBg",
+                  "Page background",
+                  colorPageBgValue,
+                  DEFAULT_SITE_SETTINGS.colorPageBg,
+                ],
+                ["colorCardBg", "Card background", colorCardBgValue, DEFAULT_SITE_SETTINGS.colorCardBg],
+                [
+                  "colorCardAccent",
+                  "Card top stripe",
+                  colorCardAccentValue,
+                  DEFAULT_SITE_SETTINGS.colorCardAccent,
+                ],
+                [
+                  "colorUrlOnCard",
+                  "Card URL text",
+                  colorUrlOnCardValue,
+                  DEFAULT_SITE_SETTINGS.colorUrlOnCard,
+                ],
               ] as const
-            ).map(([name, label, value]) => (
+            ).map(([name, label, value, fallback]) => (
               <label
                 key={name}
                 className="block text-xs font-semibold uppercase tracking-wide text-[var(--wsu-gray-mid)]"
@@ -330,7 +446,7 @@ export function SiteAppearanceForm({ settings, supportsLogoStorage }: Props) {
                   type="text"
                   defaultValue={value}
                   className="mt-1 w-full rounded-xl border border-[var(--wsu-gray-light)] px-3 py-2.5 font-mono text-sm"
-                  placeholder="#981e32"
+                  placeholder={fallback}
                 />
               </label>
             ))}
@@ -348,8 +464,9 @@ export function SiteAppearanceForm({ settings, supportsLogoStorage }: Props) {
                 type="number"
                 min={4}
                 max={32}
-                defaultValue={settings.cardRadiusPx}
+                defaultValue={cardRadiusPxValue}
                 className="mt-1 block w-32 rounded-xl border border-[var(--wsu-gray-light)] px-3 py-2.5 text-sm"
+                placeholder={String(DEFAULT_SITE_SETTINGS.cardRadiusPx)}
               />
             </label>
 
@@ -357,9 +474,10 @@ export function SiteAppearanceForm({ settings, supportsLogoStorage }: Props) {
               Shadow
               <select
                 name="cardShadow"
-                defaultValue={settings.cardShadow}
+                defaultValue={cardShadowValue}
                 className="mt-1 block rounded-xl border border-[var(--wsu-gray-light)] px-3 py-2.5 text-sm"
               >
+                <option value="">Use default (medium)</option>
                 <option value="none">None</option>
                 <option value="sm">Small</option>
                 <option value="md">Medium</option>
