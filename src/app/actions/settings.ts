@@ -99,9 +99,8 @@ function readString(formData: FormData, key: string): string {
   return String(formData.get(key) ?? "");
 }
 
-function cleanTextOrNull(value: string): string | null {
-  const trimmed = value.trim();
-  return trimmed || null;
+function cleanTextOrEmpty(value: string): string {
+  return value.trim();
 }
 
 function fallbackText(value: string, fallback: string): string {
@@ -112,25 +111,25 @@ function fallbackText(value: string, fallback: string): string {
 function buildNormalizedSettings(v: z.infer<typeof settingsSchema>) {
   return {
     logoUrl: v.logoUrl || null,
-    logoAlt: v.logoUrl ? cleanTextOrNull(v.logoAlt) : null,
+    logoAlt: v.logoUrl ? cleanTextOrEmpty(v.logoAlt) : null,
     logoSizePx: v.logoSizePx ?? DEFAULT_SITE_SETTINGS.logoSizePx,
     headerLayout: v.headerLayout ?? DEFAULT_SITE_SETTINGS.headerLayout,
-    brandLine1: cleanTextOrNull(v.brandLine1),
-    brandLine2: cleanTextOrNull(v.brandLine2),
-    headerTitle: cleanTextOrNull(v.headerTitle),
-    headerSubtitle: cleanTextOrNull(v.headerSubtitle),
+    brandLine1: cleanTextOrEmpty(v.brandLine1),
+    brandLine2: cleanTextOrEmpty(v.brandLine2),
+    headerTitle: cleanTextOrEmpty(v.headerTitle),
+    headerSubtitle: cleanTextOrEmpty(v.headerSubtitle),
     headerTitleSizePx: v.headerTitleSizePx ?? DEFAULT_SITE_SETTINGS.headerTitleSizePx,
-    heroTitle: cleanTextOrNull(v.heroTitle),
-    heroLede: cleanTextOrNull(v.heroLede),
-    emptyStateText: cleanTextOrNull(v.emptyStateText),
-    manageAddTitle: cleanTextOrNull(v.manageAddTitle),
-    manageAddBlurb: cleanTextOrNull(v.manageAddBlurb),
-    manageOrderTitle: cleanTextOrNull(v.manageOrderTitle),
-    manageOrderBlurb: cleanTextOrNull(v.manageOrderBlurb),
-    manageEmptyDragText: cleanTextOrNull(v.manageEmptyDragText),
-    loginTitle: cleanTextOrNull(v.loginTitle),
-    loginLede: cleanTextOrNull(v.loginLede),
-    loginBackLabel: cleanTextOrNull(v.loginBackLabel),
+    heroTitle: cleanTextOrEmpty(v.heroTitle),
+    heroLede: cleanTextOrEmpty(v.heroLede),
+    emptyStateText: cleanTextOrEmpty(v.emptyStateText),
+    manageAddTitle: cleanTextOrEmpty(v.manageAddTitle),
+    manageAddBlurb: cleanTextOrEmpty(v.manageAddBlurb),
+    manageOrderTitle: cleanTextOrEmpty(v.manageOrderTitle),
+    manageOrderBlurb: cleanTextOrEmpty(v.manageOrderBlurb),
+    manageEmptyDragText: cleanTextOrEmpty(v.manageEmptyDragText),
+    loginTitle: cleanTextOrEmpty(v.loginTitle),
+    loginLede: cleanTextOrEmpty(v.loginLede),
+    loginBackLabel: cleanTextOrEmpty(v.loginBackLabel),
     colorPrimary: fallbackText(v.colorPrimary, DEFAULT_SITE_SETTINGS.colorPrimary),
     colorPrimaryDark: fallbackText(v.colorPrimaryDark, DEFAULT_SITE_SETTINGS.colorPrimaryDark),
     colorText: fallbackText(v.colorText, DEFAULT_SITE_SETTINGS.colorText),
@@ -264,7 +263,7 @@ export async function updateSiteSettingsAction(formData: FormData) {
 
   const parsed = settingsSchema.safeParse(raw);
   if (!parsed.success) {
-    return { ok: false as const, error: parsed.error.flatten().fieldErrors };
+    return { ok: false as const, saved: false as const, error: parsed.error.flatten().fieldErrors };
   }
 
   const normalized = buildNormalizedSettings(parsed.data);
@@ -289,16 +288,26 @@ export async function updateSiteSettingsAction(formData: FormData) {
     if (!caps.supportsLogoStorage && normalized.logoUrl) {
       fieldErrors.logoUrl = ["Logo storage is not available in the database yet. Other settings were saved."];
     }
+    if (
+      !caps.supportsNewLogoHeaderFields &&
+      (
+        normalized.logoSizePx !== DEFAULT_SITE_SETTINGS.logoSizePx ||
+        normalized.headerLayout !== DEFAULT_SITE_SETTINGS.headerLayout
+      )
+    ) {
+      fieldErrors.logoSizePx = ["Logo sizing and header layout are not available in the database yet. Other settings were saved."];
+    }
     if (!caps.supportsHeaderTitleSize && readString(formData, "headerTitleSizePx").trim() !== "") {
       fieldErrors.headerTitleSizePx = ["Custom title sizing is not available in the database yet. Other settings were saved."];
     }
 
     if (Object.keys(fieldErrors).length > 0) {
-      return { ok: false as const, error: fieldErrors };
+      return { ok: false as const, saved: true as const, error: fieldErrors };
     }
   } catch (error) {
     return {
       ok: false as const,
+      saved: false as const,
       error: {
         formErrors: [error instanceof Error ? error.message : "Could not save settings."],
       },
@@ -309,5 +318,5 @@ export async function updateSiteSettingsAction(formData: FormData) {
   revalidatePath("/");
   revalidatePath("/manage");
   revalidatePath("/login");
-  return { ok: true as const };
+  return { ok: true as const, saved: true as const };
 }

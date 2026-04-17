@@ -122,8 +122,10 @@ export function SiteAppearanceForm({
       const fd = new FormData(e.currentTarget);
       // No more auto-populating empty fields with defaults on submit!
       const res = await updateSiteSettingsAction(fd);
-      if (res.ok) {
+      if (res.saved) {
         router.refresh();
+      }
+      if (res.ok) {
         setBanner("Settings saved successfully.");
         return;
       }
@@ -157,8 +159,9 @@ export function SiteAppearanceForm({
           </p>
         </div>
         <div className="max-w-sm rounded-[18px] bg-[var(--wsu-bg)] px-4 py-3 text-sm leading-6 text-[var(--wsu-gray-mid)] ring-1 ring-black/5">
-          Text fields are optional. Clear any copy field and save to hide it on the site. Color
-          and card styling inputs still fall back to their built-in defaults when left blank.
+          Text fields are optional. Clear any copy field and save to hide it on the site. This
+          form preview is local only until a save succeeds. Color and card styling inputs still
+          fall back to their built-in defaults when left blank.
           {supportsLogoStorage
             ? " Add a logo URL to replace the text mark in the upper-left header."
             : " The header currently uses the text mark because this database has not enabled logo storage yet."}
@@ -293,23 +296,23 @@ export function SiteAppearanceForm({
 
           <aside className="rounded-[18px] bg-[var(--wsu-bg)] p-5 ring-1 ring-black/5">
             <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--wsu-crimson)]">
-              Header preview
+              Unsaved Header Preview
             </p>
             <div className="mt-4 rounded-[18px] border border-[var(--wsu-gray-light)] bg-white p-4">
               <BrandLockup
-                brandLine1={formValues.brandLine1 || DEFAULT_SITE_SETTINGS.brandLine1}
-                brandLine2={formValues.brandLine2 || DEFAULT_SITE_SETTINGS.brandLine2}
-                headerTitle={formValues.headerTitle || DEFAULT_SITE_SETTINGS.headerTitle}
-                headerSubtitle={formValues.headerSubtitle || DEFAULT_SITE_SETTINGS.headerSubtitle}
+                brandLine1={formValues.brandLine1.trim() || null}
+                brandLine2={formValues.brandLine2.trim() || null}
+                headerTitle={formValues.headerTitle.trim() || null}
+                headerSubtitle={formValues.headerSubtitle.trim() || null}
                 headerTitleSizePx={previewHeaderTitleSize}
                 logoUrl={previewLogoUrl}
-                logoAlt={formValues.logoAlt}
+                logoAlt={formValues.logoAlt.trim() || null}
                 logoSizePx={previewLogoSize}
                 headerLayout={formValues.headerLayout}
               />
             </div>
             <p className="mt-4 text-xs leading-5 text-[var(--wsu-gray-mid)]">
-              Previews use built-in defaults if fields are empty. On the actual site, empty fields will be hidden.
+              This shows your local form state before save. The public page only changes after a successful save.
             </p>
           </aside>
         </div>
@@ -513,4 +516,3 @@ export function SiteAppearanceForm({
     </section>
   );
 }
-
