@@ -73,87 +73,50 @@ export async function siteSettingsSupportHeaderTitleSizeColumn(): Promise<boolea
 
 async function querySiteSettings(capabilities: SiteSettingsCapabilities): Promise<SiteSettingsRow | null> {
   const db = getDb();
-  // We'll try to select all columns. If it fails due to missing columns, we'll fall back.
+  
   try {
-    const result = await db.execute<RawSettingsRow>(sql`
-      select
-        "id",
-        "logo_url" as "logoUrl",
-        "logo_alt" as "logoAlt",
-        "logo_size_px" as "logoSizePx",
-        "header_layout" as "headerLayout",
-        "brand_line1" as "brandLine1",
-        "brand_line2" as "brandLine2",
-        "header_title" as "headerTitle",
-        "header_subtitle" as "headerSubtitle",
-        "header_title_size_px" as "headerTitleSizePx",
-        "hero_title" as "heroTitle",
-        "hero_lede" as "heroLede",
-        "empty_state_text" as "emptyStateText",
-        "manage_add_title" as "manageAddTitle",
-        "manage_add_blurb" as "manageAddBlurb",
-        "manage_order_title" as "manageOrderTitle",
-        "manage_order_blurb" as "manageOrderBlurb",
-        "manage_empty_drag_text" as "manageEmptyDragText",
-        "login_title" as "loginTitle",
-        "login_lede" as "loginLede",
-        "login_back_label" as "loginBackLabel",
-        "color_primary" as "colorPrimary",
-        "color_primary_dark" as "colorPrimaryDark",
-        "color_text" as "colorText",
-        "color_text_muted" as "colorTextMuted",
-        "color_border" as "colorBorder",
-        "color_page_bg" as "colorPageBg",
-        "color_card_bg" as "colorCardBg",
-        "color_card_accent" as "colorCardAccent",
-        "color_url_on_card" as "colorUrlOnCard",
-        "card_radius_px" as "cardRadiusPx",
-        "card_shadow" as "cardShadow",
-        "updated_at" as "updatedAt"
-      from "site_settings"
-      where "id" = 1
-      limit 1
+    const capsResult = await db.execute(sql`
+      select column_name
+      from information_schema.columns
+      where table_name = 'site_settings'
     `);
+    const cols = new Set((capsResult.rows as any[]).map((r) => String(r.column_name)));
+    
+    const selectFields: string[] = ["id"];
+    const allExpected = [
+      "logo_url", "logo_alt", "logo_size_px", "header_layout",
+      "brand_line1", "brand_line2", "header_title", "header_subtitle",
+      "header_title_size_px", "hero_title", "hero_lede", "empty_state_text",
+      "manage_add_title", "manage_add_blurb", "manage_order_title",
+      "manage_order_blurb", "manage_empty_drag_text", "login_title",
+      "login_lede", "login_back_label", "color_primary", "color_primary_dark",
+      "color_text", "color_text_muted", "color_border", "color_page_bg",
+      "color_card_bg", "color_card_accent", "color_url_on_card",
+      "card_radius_px", "card_shadow", "updated_at"
+    ];
+
+    for (const f of allExpected) {
+      if (cols.has(f)) {
+        const alias = f.replace(/_([a-z0-9])/g, (_, letter) => letter.toUpperCase());
+        selectFields.push(`"${f}" as "${alias}"`);
+      }
+    }
+
+    const query = sql.raw(`select ${selectFields.join(", ")} from "site_settings" where "id" = 1 limit 1`);
+    const result = await db.execute<RawSettingsRow>(query);
     const row = result.rows[0];
-    return row ? normalizeSettingsRow(row, capabilities) : null;
+    
+    if (!row) return null;
+
+    const finalCaps: SiteSettingsCapabilities = {
+      supportsLogoStorage: cols.has("logo_url") && cols.has("logo_alt"),
+      supportsHeaderTitleSize: cols.has("header_title_size_px"),
+    };
+
+    return normalizeSettingsRow(row, finalCaps);
   } catch (e) {
-    // Fallback for older schema if needed
-    const result = await db.execute<RawSettingsRow>(sql`
-      select
-        "id",
-        "brand_line1" as "brandLine1",
-        "brand_line2" as "brandLine2",
-        "header_title" as "headerTitle",
-        "header_subtitle" as "headerSubtitle",
-        "hero_title" as "heroTitle",
-        "hero_lede" as "heroLede",
-        "empty_state_text" as "emptyStateText",
-        "manage_add_title" as "manageAddTitle",
-        "manage_add_blurb" as "manageAddBlurb",
-        "manage_order_title" as "manageOrderTitle",
-        "manage_order_blurb" as "manageOrderBlurb",
-        "manage_empty_drag_text" as "manageEmptyDragText",
-        "login_title" as "loginTitle",
-        "login_lede" as "loginLede",
-        "login_back_label" as "loginBackLabel",
-        "color_primary" as "colorPrimary",
-        "color_primary_dark" as "colorPrimaryDark",
-        "color_text" as "colorText",
-        "color_text_muted" as "colorTextMuted",
-        "color_border" as "colorBorder",
-        "color_page_bg" as "colorPageBg",
-        "color_card_bg" as "colorCardBg",
-        "color_card_accent" as "colorCardAccent",
-        "color_url_on_card" as "colorUrlOnCard",
-        "card_radius_px" as "cardRadiusPx",
-        "card_shadow" as "cardShadow",
-        "updated_at" as "updatedAt"
-      from "site_settings"
-      where "id" = 1
-      limit 1
-    `);
-    const row = result.rows[0];
-    return row ? normalizeSettingsRow(row, capabilities) : null;
+    console.error("Failed to query site settings dynamically:", e);
+    return null;
   }
 }
 

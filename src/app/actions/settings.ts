@@ -155,422 +155,80 @@ async function requireSession() {
   }
 }
 
-async function saveLegacySettings(settings: NormalizedSettings, supportsHeaderTitleSize: boolean) {
+type Capabilities = {
+  supportsLogoStorage: boolean;
+  supportsHeaderTitleSize: boolean;
+  supportsNewLogoHeaderFields: boolean;
+};
+
+async function saveSettings(settings: NormalizedSettings, caps: Capabilities) {
   const db = getDb();
-  if (supportsHeaderTitleSize) {
-    await db.execute(sql`
-      insert into "site_settings" (
-        "id",
-        "logo_size_px",
-        "header_layout",
-        "brand_line1",
-        "brand_line2",
-        "header_title",
-        "header_subtitle",
-        "header_title_size_px",
-        "hero_title",
-        "hero_lede",
-        "empty_state_text",
-        "manage_add_title",
-        "manage_add_blurb",
-        "manage_order_title",
-        "manage_order_blurb",
-        "manage_empty_drag_text",
-        "login_title",
-        "login_lede",
-        "login_back_label",
-        "color_primary",
-        "color_primary_dark",
-        "color_text",
-        "color_text_muted",
-        "color_border",
-        "color_page_bg",
-        "color_card_bg",
-        "color_card_accent",
-        "color_url_on_card",
-        "card_radius_px",
-        "card_shadow",
-        "updated_at"
-      ) values (
-        1,
-        ${settings.logoSizePx},
-        ${settings.headerLayout},
-        ${settings.brandLine1},
-        ${settings.brandLine2},
-        ${settings.headerTitle},
-        ${settings.headerSubtitle},
-        ${settings.headerTitleSizePx},
-        ${settings.heroTitle},
-        ${settings.heroLede},
-        ${settings.emptyStateText},
-        ${settings.manageAddTitle},
-        ${settings.manageAddBlurb},
-        ${settings.manageOrderTitle},
-        ${settings.manageOrderBlurb},
-        ${settings.manageEmptyDragText},
-        ${settings.loginTitle},
-        ${settings.loginLede},
-        ${settings.loginBackLabel},
-        ${settings.colorPrimary},
-        ${settings.colorPrimaryDark},
-        ${settings.colorText},
-        ${settings.colorTextMuted},
-        ${settings.colorBorder},
-        ${settings.colorPageBg},
-        ${settings.colorCardBg},
-        ${settings.colorCardAccent},
-        ${settings.colorUrlOnCard},
-        ${settings.cardRadiusPx},
-        ${settings.cardShadow},
-        ${settings.updatedAt}
-      )
-      on conflict ("id") do update set
-        "logo_size_px" = excluded."logo_size_px",
-        "header_layout" = excluded."header_layout",
-        "brand_line1" = excluded."brand_line1",
-        "brand_line2" = excluded."brand_line2",
-        "header_title" = excluded."header_title",
-        "header_subtitle" = excluded."header_subtitle",
-        "header_title_size_px" = excluded."header_title_size_px",
-        "hero_title" = excluded."hero_title",
-        "hero_lede" = excluded."hero_lede",
-        "empty_state_text" = excluded."empty_state_text",
-        "manage_add_title" = excluded."manage_add_title",
-        "manage_add_blurb" = excluded."manage_add_blurb",
-        "manage_order_title" = excluded."manage_order_title",
-        "manage_order_blurb" = excluded."manage_order_blurb",
-        "manage_empty_drag_text" = excluded."manage_empty_drag_text",
-        "login_title" = excluded."login_title",
-        "login_lede" = excluded."login_lede",
-        "login_back_label" = excluded."login_back_label",
-        "color_primary" = excluded."color_primary",
-        "color_primary_dark" = excluded."color_primary_dark",
-        "color_text" = excluded."color_text",
-        "color_text_muted" = excluded."color_text_muted",
-        "color_border" = excluded."color_border",
-        "color_page_bg" = excluded."color_page_bg",
-        "color_card_bg" = excluded."color_card_bg",
-        "color_card_accent" = excluded."color_card_accent",
-        "color_url_on_card" = excluded."color_url_on_card",
-        "card_radius_px" = excluded."card_radius_px",
-        "card_shadow" = excluded."card_shadow",
-        "updated_at" = excluded."updated_at"
-    `);
-    return;
+  
+  // Build columns and values dynamically to avoid "column does not exist" errors
+  const columns: string[] = ["id"];
+  const values: any[] = [1];
+  const updates: string[] = [];
+
+  const add = (col: string, val: any) => {
+    columns.push(`"${col}"`);
+    values.push(val);
+    updates.push(`"${col}" = excluded."${col}"`);
+  };
+
+  if (caps.supportsLogoStorage) {
+    add("logo_url", settings.logoUrl);
+    add("logo_alt", settings.logoAlt);
+  }
+  if (caps.supportsNewLogoHeaderFields) {
+    add("logo_size_px", settings.logoSizePx);
+    add("header_layout", settings.headerLayout);
+  }
+  if (caps.supportsHeaderTitleSize) {
+    add("header_title_size_px", settings.headerTitleSizePx);
   }
 
-  await db.execute(sql`
-    insert into "site_settings" (
-      "id",
-      "logo_size_px",
-      "header_layout",
-      "brand_line1",
-      "brand_line2",
-      "header_title",
-      "header_subtitle",
-      "hero_title",
-      "hero_lede",
-      "empty_state_text",
-      "manage_add_title",
-      "manage_add_blurb",
-      "manage_order_title",
-      "manage_order_blurb",
-      "manage_empty_drag_text",
-      "login_title",
-      "login_lede",
-      "login_back_label",
-      "color_primary",
-      "color_primary_dark",
-      "color_text",
-      "color_text_muted",
-      "color_border",
-      "color_page_bg",
-      "color_card_bg",
-      "color_card_accent",
-      "color_url_on_card",
-      "card_radius_px",
-      "card_shadow",
-      "updated_at"
-    ) values (
-      1,
-      ${settings.logoSizePx},
-      ${settings.headerLayout},
-      ${settings.brandLine1},
-      ${settings.brandLine2},
-      ${settings.headerTitle},
-      ${settings.headerSubtitle},
-      ${settings.heroTitle},
-      ${settings.heroLede},
-      ${settings.emptyStateText},
-      ${settings.manageAddTitle},
-      ${settings.manageAddBlurb},
-      ${settings.manageOrderTitle},
-      ${settings.manageOrderBlurb},
-      ${settings.manageEmptyDragText},
-      ${settings.loginTitle},
-      ${settings.loginLede},
-      ${settings.loginBackLabel},
-      ${settings.colorPrimary},
-      ${settings.colorPrimaryDark},
-      ${settings.colorText},
-      ${settings.colorTextMuted},
-      ${settings.colorBorder},
-      ${settings.colorPageBg},
-      ${settings.colorCardBg},
-      ${settings.colorCardAccent},
-      ${settings.colorUrlOnCard},
-      ${settings.cardRadiusPx},
-      ${settings.cardShadow},
-      ${settings.updatedAt}
-    )
-    on conflict ("id") do update set
-      "logo_size_px" = excluded."logo_size_px",
-      "header_layout" = excluded."header_layout",
-      "brand_line1" = excluded."brand_line1",
-      "brand_line2" = excluded."brand_line2",
-      "header_title" = excluded."header_title",
-      "header_subtitle" = excluded."header_subtitle",
-      "hero_title" = excluded."hero_title",
-      "hero_lede" = excluded."hero_lede",
-      "empty_state_text" = excluded."empty_state_text",
-      "manage_add_title" = excluded."manage_add_title",
-      "manage_add_blurb" = excluded."manage_add_blurb",
-      "manage_order_title" = excluded."manage_order_title",
-      "manage_order_blurb" = excluded."manage_order_blurb",
-      "manage_empty_drag_text" = excluded."manage_empty_drag_text",
-      "login_title" = excluded."login_title",
-      "login_lede" = excluded."login_lede",
-      "login_back_label" = excluded."login_back_label",
-      "color_primary" = excluded."color_primary",
-      "color_primary_dark" = excluded."color_primary_dark",
-      "color_text" = excluded."color_text",
-      "color_text_muted" = excluded."color_text_muted",
-      "color_border" = excluded."color_border",
-      "color_page_bg" = excluded."color_page_bg",
-      "color_card_bg" = excluded."color_card_bg",
-      "color_card_accent" = excluded."color_card_accent",
-      "color_url_on_card" = excluded."color_url_on_card",
-      "card_radius_px" = excluded."card_radius_px",
-      "card_shadow" = excluded."card_shadow",
-      "updated_at" = excluded."updated_at"
-  `);
-}
+  add("brand_line1", settings.brandLine1);
+  add("brand_line2", settings.brandLine2);
+  add("header_title", settings.headerTitle);
+  add("header_subtitle", settings.headerSubtitle);
+  add("hero_title", settings.heroTitle);
+  add("hero_lede", settings.heroLede);
+  add("empty_state_text", settings.emptyStateText);
+  add("manage_add_title", settings.manageAddTitle);
+  add("manage_add_blurb", settings.manageAddBlurb);
+  add("manage_order_title", settings.manageOrderTitle);
+  add("manage_order_blurb", settings.manageOrderBlurb);
+  add("manage_empty_drag_text", settings.manageEmptyDragText);
+  add("login_title", settings.loginTitle);
+  add("login_lede", settings.loginLede);
+  add("login_back_label", settings.loginBackLabel);
+  add("color_primary", settings.colorPrimary);
+  add("color_primary_dark", settings.colorPrimaryDark);
+  add("color_text", settings.colorText);
+  add("color_text_muted", settings.colorTextMuted);
+  add("color_border", settings.colorBorder);
+  add("color_page_bg", settings.colorPageBg);
+  add("color_card_bg", settings.colorCardBg);
+  add("color_card_accent", settings.colorCardAccent);
+  add("color_url_on_card", settings.colorUrlOnCard);
+  add("card_radius_px", settings.cardRadiusPx);
+  add("card_shadow", settings.cardShadow);
+  add("updated_at", settings.updatedAt);
 
-async function saveLogoSettings(settings: NormalizedSettings, supportsHeaderTitleSize: boolean) {
-  const db = getDb();
-  if (supportsHeaderTitleSize) {
-    await db.execute(sql`
-      insert into "site_settings" (
-        "id",
-        "logo_url",
-        "logo_alt",
-        "logo_size_px",
-        "header_layout",
-        "brand_line1",
-        "brand_line2",
-        "header_title",
-        "header_subtitle",
-        "header_title_size_px",
-        "hero_title",
-        "hero_lede",
-        "empty_state_text",
-        "manage_add_title",
-        "manage_add_blurb",
-        "manage_order_title",
-        "manage_order_blurb",
-        "manage_empty_drag_text",
-        "login_title",
-        "login_lede",
-        "login_back_label",
-        "color_primary",
-        "color_primary_dark",
-        "color_text",
-        "color_text_muted",
-        "color_border",
-        "color_page_bg",
-        "color_card_bg",
-        "color_card_accent",
-        "color_url_on_card",
-        "card_radius_px",
-        "card_shadow",
-        "updated_at"
-      ) values (
-        1,
-        ${settings.logoUrl},
-        ${settings.logoAlt},
-        ${settings.logoSizePx},
-        ${settings.headerLayout},
-        ${settings.brandLine1},
-        ${settings.brandLine2},
-        ${settings.headerTitle},
-        ${settings.headerSubtitle},
-        ${settings.headerTitleSizePx},
-        ${settings.heroTitle},
-        ${settings.heroLede},
-        ${settings.emptyStateText},
-        ${settings.manageAddTitle},
-        ${settings.manageAddBlurb},
-        ${settings.manageOrderTitle},
-        ${settings.manageOrderBlurb},
-        ${settings.manageEmptyDragText},
-        ${settings.loginTitle},
-        ${settings.loginLede},
-        ${settings.loginBackLabel},
-        ${settings.colorPrimary},
-        ${settings.colorPrimaryDark},
-        ${settings.colorText},
-        ${settings.colorTextMuted},
-        ${settings.colorBorder},
-        ${settings.colorPageBg},
-        ${settings.colorCardBg},
-        ${settings.colorCardAccent},
-        ${settings.colorUrlOnCard},
-        ${settings.cardRadiusPx},
-        ${settings.cardShadow},
-        ${settings.updatedAt}
-      )
-      on conflict ("id") do update set
-        "logo_url" = excluded."logo_url",
-        "logo_alt" = excluded."logo_alt",
-        "logo_size_px" = excluded."logo_size_px",
-        "header_layout" = excluded."header_layout",
-        "brand_line1" = excluded."brand_line1",
-        "brand_line2" = excluded."brand_line2",
-        "header_title" = excluded."header_title",
-        "header_subtitle" = excluded."header_subtitle",
-        "header_title_size_px" = excluded."header_title_size_px",
-        "hero_title" = excluded."hero_title",
-        "hero_lede" = excluded."hero_lede",
-        "empty_state_text" = excluded."empty_state_text",
-        "manage_add_title" = excluded."manage_add_title",
-        "manage_add_blurb" = excluded."manage_add_blurb",
-        "manage_order_title" = excluded."manage_order_title",
-        "manage_order_blurb" = excluded."manage_order_blurb",
-        "manage_empty_drag_text" = excluded."manage_empty_drag_text",
-        "login_title" = excluded."login_title",
-        "login_lede" = excluded."login_lede",
-        "login_back_label" = excluded."login_back_label",
-        "color_primary" = excluded."color_primary",
-        "color_primary_dark" = excluded."color_primary_dark",
-        "color_text" = excluded."color_text",
-        "color_text_muted" = excluded."color_text_muted",
-        "color_border" = excluded."color_border",
-        "color_page_bg" = excluded."color_page_bg",
-        "color_card_bg" = excluded."color_card_bg",
-        "color_card_accent" = excluded."color_card_accent",
-        "color_url_on_card" = excluded."color_url_on_card",
-        "card_radius_px" = excluded."card_radius_px",
-        "card_shadow" = excluded."card_shadow",
-        "updated_at" = excluded."updated_at"
-    `);
-    return;
-  }
-
-  await db.execute(sql`
-    insert into "site_settings" (
-      "id",
-      "logo_url",
-      "logo_alt",
-      "logo_size_px",
-      "header_layout",
-      "brand_line1",
-      "brand_line2",
-      "header_title",
-      "header_subtitle",
-      "hero_title",
-      "hero_lede",
-      "empty_state_text",
-      "manage_add_title",
-      "manage_add_blurb",
-      "manage_order_title",
-      "manage_order_blurb",
-      "manage_empty_drag_text",
-      "login_title",
-      "login_lede",
-      "login_back_label",
-      "color_primary",
-      "color_primary_dark",
-      "color_text",
-      "color_text_muted",
-      "color_border",
-      "color_page_bg",
-      "color_card_bg",
-      "color_card_accent",
-      "color_url_on_card",
-      "card_radius_px",
-      "card_shadow",
-      "updated_at"
-    ) values (
-      1,
-      ${settings.logoUrl},
-      ${settings.logoAlt},
-      ${settings.logoSizePx},
-      ${settings.headerLayout},
-      ${settings.brandLine1},
-      ${settings.brandLine2},
-      ${settings.headerTitle},
-      ${settings.headerSubtitle},
-      ${settings.heroTitle},
-      ${settings.heroLede},
-      ${settings.emptyStateText},
-      ${settings.manageAddTitle},
-      ${settings.manageAddBlurb},
-      ${settings.manageOrderTitle},
-      ${settings.manageOrderBlurb},
-      ${settings.manageEmptyDragText},
-      ${settings.loginTitle},
-      ${settings.loginLede},
-      ${settings.loginBackLabel},
-      ${settings.colorPrimary},
-      ${settings.colorPrimaryDark},
-      ${settings.colorText},
-      ${settings.colorTextMuted},
-      ${settings.colorBorder},
-      ${settings.colorPageBg},
-      ${settings.colorCardBg},
-      ${settings.colorCardAccent},
-      ${settings.colorUrlOnCard},
-      ${settings.cardRadiusPx},
-      ${settings.cardShadow},
-      ${settings.updatedAt}
-    )
+  const sqlQuery = sql.raw(`
+    insert into "site_settings" (${columns.join(", ")})
+    values (${values.map(() => "?").join(", ")})
     on conflict ("id") do update set
-      "logo_url" = excluded."logo_url",
-      "logo_alt" = excluded."logo_alt",
-      "logo_size_px" = excluded."logo_size_px",
-      "header_layout" = excluded."header_layout",
-      "brand_line1" = excluded."brand_line1",
-      "brand_line2" = excluded."brand_line2",
-      "header_title" = excluded."header_title",
-      "header_subtitle" = excluded."header_subtitle",
-      "hero_title" = excluded."hero_title",
-      "hero_lede" = excluded."hero_lede",
-      "empty_state_text" = excluded."empty_state_text",
-      "manage_add_title" = excluded."manage_add_title",
-      "manage_add_blurb" = excluded."manage_add_blurb",
-      "manage_order_title" = excluded."manage_order_title",
-      "manage_order_blurb" = excluded."manage_order_blurb",
-      "manage_empty_drag_text" = excluded."manage_empty_drag_text",
-      "login_title" = excluded."login_title",
-      "login_lede" = excluded."login_lede",
-      "login_back_label" = excluded."login_back_label",
-      "color_primary" = excluded."color_primary",
-      "color_primary_dark" = excluded."color_primary_dark",
-      "color_text" = excluded."color_text",
-      "color_text_muted" = excluded."color_text_muted",
-      "color_border" = excluded."color_border",
-      "color_page_bg" = excluded."color_page_bg",
-      "color_card_bg" = excluded."color_card_bg",
-      "color_card_accent" = excluded."color_card_accent",
-      "color_url_on_card" = excluded."color_url_on_card",
-      "card_radius_px" = excluded."card_radius_px",
-      "card_shadow" = excluded."card_shadow",
-      "updated_at" = excluded."updated_at"
+      ${updates.join(", ")}
   `);
+
+  await db.execute(sqlQuery, values);
 }
 
 export async function updateSiteSettingsAction(formData: FormData) {
   await requireSession();
+  // ... (rest of parsing logic)
+
 
   const raw = {
     logoUrl: readString(formData, "logoUrl"),
@@ -612,67 +270,41 @@ export async function updateSiteSettingsAction(formData: FormData) {
   }
 
   const normalized = buildNormalizedSettings(parsed.data);
-  const requestedLogo = Boolean(normalized.logoUrl);
-  const requestedHeaderTitleSize = readString(formData, "headerTitleSizePx").trim() !== "";
 
   try {
-    const capabilities = await getSiteSettingsCapabilities();
-    if (capabilities.supportsLogoStorage) {
-      await saveLogoSettings(normalized, capabilities.supportsHeaderTitleSize);
-    } else {
-      await saveLegacySettings(normalized, capabilities.supportsHeaderTitleSize);
+    const capsResult = await getDb().execute(sql`
+      select column_name
+      from information_schema.columns
+      where table_name = 'site_settings'
+    `);
+    const existingColumns = new Set((capsResult.rows as any[]).map((r) => String(r.column_name)));
+    
+    const caps: Capabilities = {
+      supportsLogoStorage: existingColumns.has("logo_url") && existingColumns.has("logo_alt"),
+      supportsHeaderTitleSize: existingColumns.has("header_title_size_px"),
+      supportsNewLogoHeaderFields: existingColumns.has("logo_size_px") && existingColumns.has("header_layout"),
+    };
+
+    await saveSettings(normalized, caps);
+
+    const fieldErrors: Record<string, string[]> = {};
+    if (!caps.supportsLogoStorage && normalized.logoUrl) {
+      fieldErrors.logoUrl = ["Logo storage is not available in the database yet. Other settings were saved."];
+    }
+    if (!caps.supportsHeaderTitleSize && readString(formData, "headerTitleSizePx").trim() !== "") {
+      fieldErrors.headerTitleSizePx = ["Custom title sizing is not available in the database yet. Other settings were saved."];
+    }
+
+    if (Object.keys(fieldErrors).length > 0) {
+      return { ok: false as const, error: fieldErrors };
     }
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Could not save settings right now.";
-    const missingLogoColumn = message.includes("logo_url") || message.includes("logo_alt") || message.includes("logo_size_px") || message.includes("header_layout");
-    const missingHeaderTitleSizeColumn = message.includes("header_title_size_px");
-
-    if (missingLogoColumn || missingHeaderTitleSizeColumn) {
-      try {
-        if (missingLogoColumn) {
-          await saveLegacySettings(normalized, false);
-        } else {
-          await saveLogoSettings(normalized, false);
-        }
-      } catch (retryError) {
-        return {
-          ok: false as const,
-          error: {
-            formErrors: [
-              retryError instanceof Error
-                ? retryError.message
-                : "Could not save settings right now.",
-            ],
-          },
-        };
-      }
-
-      const fieldErrors: Record<string, string[]> = {};
-      if (requestedLogo && missingLogoColumn) {
-        fieldErrors.logoUrl = [
-          "Logo storage is not available until the database migration is applied. Other settings were saved.",
-        ];
-      }
-      if (requestedHeaderTitleSize && missingHeaderTitleSizeColumn) {
-        fieldErrors.headerTitleSizePx = [
-          "Header title sizing is not available until the database migration is applied. Other settings were saved.",
-        ];
-      }
-
-      if (Object.keys(fieldErrors).length > 0) {
-        return {
-          ok: false as const,
-          error: fieldErrors,
-        };
-      }
-    } else {
-      return {
-        ok: false as const,
-        error: {
-          formErrors: [message],
-        },
-      };
-    }
+    return {
+      ok: false as const,
+      error: {
+        formErrors: [error instanceof Error ? error.message : "Could not save settings."],
+      },
+    };
   }
 
   revalidatePath("/", "layout");
