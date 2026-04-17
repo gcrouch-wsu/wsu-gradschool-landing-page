@@ -1,6 +1,5 @@
-import Link from "next/link";
-import { BrandLockup } from "@/components/BrandLockup";
 import { LoginForm } from "@/components/LoginForm";
+import { SiteHeaderBar, type SiteHeaderAction } from "@/components/SiteHeaderBar";
 import { getSiteSettings } from "@/lib/settings";
 import { normalizeInternalPath } from "@/lib/safe-path";
 
@@ -14,38 +13,13 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
   const settings = await getSiteSettings();
   const resolvedSearchParams = (await searchParams) ?? {};
   const nextPath = normalizeInternalPath(resolvedSearchParams.next);
+  const headerActions: SiteHeaderAction[] = settings.loginBackLabel
+    ? [{ kind: "link", href: "/", label: settings.loginBackLabel, tone: "secondary" }]
+    : [];
 
   return (
     <>
-      <div
-        className="h-1.5 w-full bg-gradient-to-r from-[var(--wsu-crimson)] from-[40%] to-[var(--wsu-gray-mid)] to-[40%]"
-        aria-hidden
-      />
-      <header className="border-b border-[var(--wsu-gray-light)] bg-white">
-        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4 px-5 py-4">
-          <BrandLockup
-            href="/"
-            className="w-full max-w-[42rem]"
-            brandLine1={settings.brandLine1}
-            brandLine2={settings.brandLine2}
-            headerTitle={settings.headerTitle}
-            headerSubtitle={settings.headerSubtitle}
-            headerTitleSizePx={settings.headerTitleSizePx}
-            logoUrl={settings.logoUrl}
-            logoAlt={settings.logoAlt}
-            logoSizePx={settings.logoSizePx}
-            headerLayout={settings.headerLayout}
-          />
-          {settings.loginBackLabel ? (
-            <Link
-              href="/"
-              className="rounded-full border border-[var(--wsu-gray-light)] px-4 py-2 text-sm font-semibold text-[var(--wsu-gray)] transition hover:bg-[var(--wsu-bg)]"
-            >
-              {settings.loginBackLabel}
-            </Link>
-          ) : null}
-        </div>
-      </header>
+      <SiteHeaderBar settings={settings} actions={headerActions} />
 
       <main className="mx-auto max-w-6xl px-4 py-10">
         <div className="grid gap-8 lg:grid-cols-[minmax(0,1.15fr)_minmax(340px,420px)] lg:items-start">

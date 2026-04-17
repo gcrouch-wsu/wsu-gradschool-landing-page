@@ -11,6 +11,7 @@ type BrandLockupProps = {
   logoAlt?: string | null;
   logoSizePx?: number | null;
   headerLayout?: string | null;
+  contentAlign?: "start" | "center";
   href?: string;
   className?: string;
 };
@@ -73,6 +74,7 @@ export function BrandLockup({
   logoUrl,
   logoAlt,
   logoSizePx,
+  contentAlign = "start",
   headerLayout = "side",
   href,
   className = "",
@@ -80,6 +82,7 @@ export function BrandLockup({
   const hasMark = Boolean(logoUrl || brandLine1?.trim() || brandLine2?.trim());
   const hasTitle = Boolean(headerTitle?.trim());
   const hasSubtitle = Boolean(headerSubtitle?.trim());
+  const isCentered = contentAlign === "center";
 
   if (!hasMark && !hasTitle && !hasSubtitle) {
     return null;
@@ -95,7 +98,7 @@ export function BrandLockup({
             ? "grid-cols-1 items-start"
             : "sm:grid-cols-[auto_minmax(0,1fr)] sm:items-center sm:gap-4"
           : ""
-      } ${className}`.trim()}
+      } ${isCentered ? "justify-items-center text-center" : ""} ${className}`.trim()}
     >
       {hasMark ? (
         <BrandMark
@@ -108,7 +111,7 @@ export function BrandLockup({
         />
       ) : null}
       {hasTitle || hasSubtitle ? (
-        <div className="min-w-0 max-w-full">
+        <div className={`min-w-0 max-w-full ${isCentered ? "text-center" : ""}`.trim()}>
           {hasTitle ? (
             <div
               className="max-w-full font-bold leading-[1.08] text-[var(--wsu-gray)] text-pretty"

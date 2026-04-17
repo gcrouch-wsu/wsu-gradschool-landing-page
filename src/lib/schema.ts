@@ -26,6 +26,7 @@ export const siteSettings = pgTable("site_settings", {
   logoAlt: text("logo_alt"),
   logoSizePx: integer("logo_size_px").notNull().default(160),
   headerLayout: text("header_layout").notNull().default("side"), // 'side' or 'stacked'
+  headerPlacement: text("header_placement").notNull().default("split"), // split, stacked, centered
   brandLine1: text("brand_line1"),
   brandLine2: text("brand_line2"),
   headerTitle: text("header_title"),

@@ -14,6 +14,9 @@ ALTER TABLE "site_settings"
 ADD COLUMN IF NOT EXISTS "header_layout" text;
 
 ALTER TABLE "site_settings"
+ADD COLUMN IF NOT EXISTS "header_placement" text;
+
+ALTER TABLE "site_settings"
 ALTER COLUMN "brand_line1" DROP NOT NULL;
 
 ALTER TABLE "site_settings"
@@ -139,6 +142,10 @@ UPDATE "site_settings"
 SET "header_layout" = 'side'
 WHERE "header_layout" IS NULL;
 
+UPDATE "site_settings"
+SET "header_placement" = 'split'
+WHERE "header_placement" IS NULL;
+
 ALTER TABLE "site_settings"
 ALTER COLUMN "hero_lede" SET DEFAULT 'This directory is public. Use Manage apps to sign in and update links, descriptions, ordering, and branding.';
 
@@ -174,6 +181,12 @@ ALTER COLUMN "header_layout" SET DEFAULT 'side';
 
 ALTER TABLE "site_settings"
 ALTER COLUMN "header_layout" SET NOT NULL;
+
+ALTER TABLE "site_settings"
+ALTER COLUMN "header_placement" SET DEFAULT 'split';
+
+ALTER TABLE "site_settings"
+ALTER COLUMN "header_placement" SET NOT NULL;
 
 UPDATE "site_settings"
 SET "hero_lede" = 'This directory is public. Use Manage apps to sign in and update links, descriptions, ordering, and branding.'

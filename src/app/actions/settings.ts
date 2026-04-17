@@ -12,6 +12,7 @@ import { SESSION_COOKIE, verifySessionToken } from "@/lib/session";
 
 const shadowValues = ["none", "sm", "md", "lg"] as const;
 const headerLayoutValues = ["side", "stacked"] as const;
+const headerPlacementValues = ["split", "stacked", "centered"] as const;
 
 const textOrBlank = (max: number) =>
   z.string().trim().max(max, `Keep this under ${max} characters`);
@@ -59,11 +60,20 @@ const headerLayoutOrBlank = z.preprocess(
   z.enum(headerLayoutValues).optional(),
 );
 
+const headerPlacementOrBlank = z.preprocess(
+  (value) => {
+    const text = String(value ?? "").trim();
+    return text === "" ? undefined : text;
+  },
+  z.enum(headerPlacementValues).optional(),
+);
+
 const settingsSchema = z.object({
   logoUrl: logoUrlOrBlank,
   logoAlt: textOrBlank(160),
   logoSizePx: numberOrBlank(40, 400),
   headerLayout: headerLayoutOrBlank,
+  headerPlacement: headerPlacementOrBlank,
   brandLine1: textOrBlank(40),
   brandLine2: textOrBlank(40),
   headerTitle: textOrBlank(120),
@@ -114,6 +124,7 @@ function buildNormalizedSettings(v: z.infer<typeof settingsSchema>) {
     logoAlt: v.logoUrl ? cleanTextOrEmpty(v.logoAlt) : null,
     logoSizePx: v.logoSizePx ?? DEFAULT_SITE_SETTINGS.logoSizePx,
     headerLayout: v.headerLayout ?? DEFAULT_SITE_SETTINGS.headerLayout,
+    headerPlacement: v.headerPlacement ?? DEFAULT_SITE_SETTINGS.headerPlacement,
     brandLine1: cleanTextOrEmpty(v.brandLine1),
     brandLine2: cleanTextOrEmpty(v.brandLine2),
     headerTitle: cleanTextOrEmpty(v.headerTitle),
@@ -157,6 +168,7 @@ type Capabilities = {
   supportsLogoStorage: boolean;
   supportsHeaderTitleSize: boolean;
   supportsNewLogoHeaderFields: boolean;
+  supportsHeaderPlacement: boolean;
 };
 
 async function saveSettings(settings: NormalizedSettings, caps: Capabilities) {
@@ -178,6 +190,9 @@ async function saveSettings(settings: NormalizedSettings, caps: Capabilities) {
   if (caps.supportsNewLogoHeaderFields) {
     add("logo_size_px", settings.logoSizePx);
     add("header_layout", settings.headerLayout);
+  }
+  if (caps.supportsHeaderPlacement) {
+    add("header_placement", settings.headerPlacement);
   }
   if (caps.supportsHeaderTitleSize) {
     add("header_title_size_px", settings.headerTitleSizePx);
@@ -232,6 +247,7 @@ export async function updateSiteSettingsAction(formData: FormData) {
     logoAlt: readString(formData, "logoAlt"),
     logoSizePx: readString(formData, "logoSizePx"),
     headerLayout: readString(formData, "headerLayout"),
+    headerPlacement: readString(formData, "headerPlacement"),
     brandLine1: readString(formData, "brandLine1"),
     brandLine2: readString(formData, "brandLine2"),
     headerTitle: readString(formData, "headerTitle"),
@@ -280,6 +296,7 @@ export async function updateSiteSettingsAction(formData: FormData) {
       supportsLogoStorage: existingColumns.has("logo_url") && existingColumns.has("logo_alt"),
       supportsHeaderTitleSize: existingColumns.has("header_title_size_px"),
       supportsNewLogoHeaderFields: existingColumns.has("logo_size_px") && existingColumns.has("header_layout"),
+      supportsHeaderPlacement: existingColumns.has("header_placement"),
     };
 
     await saveSettings(normalized, caps);
@@ -299,6 +316,9 @@ export async function updateSiteSettingsAction(formData: FormData) {
     }
     if (!caps.supportsHeaderTitleSize && readString(formData, "headerTitleSizePx").trim() !== "") {
       fieldErrors.headerTitleSizePx = ["Custom title sizing is not available in the database yet. Other settings were saved."];
+    }
+    if (!caps.supportsHeaderPlacement && normalized.headerPlacement !== DEFAULT_SITE_SETTINGS.headerPlacement) {
+      fieldErrors.headerPlacement = ["Header placement is not available in the database yet. Other settings were saved."];
     }
 
     if (Object.keys(fieldErrors).length > 0) {

@@ -3,13 +3,25 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { updateSiteSettingsAction } from "@/app/actions/settings";
-import { BrandLockup } from "@/components/BrandLockup";
 import type { SiteSettingsRow } from "@/lib/schema";
 import { DEFAULT_SITE_SETTINGS } from "@/lib/site-defaults";
 
 type Props = {
   settings: SiteSettingsRow;
   supportsLogoStorage: boolean;
+  onHeaderSettingsChange?: (settings: Pick<
+    SiteSettingsRow,
+    | "brandLine1"
+    | "brandLine2"
+    | "headerTitle"
+    | "headerSubtitle"
+    | "headerTitleSizePx"
+    | "logoUrl"
+    | "logoAlt"
+    | "logoSizePx"
+    | "headerLayout"
+    | "headerPlacement"
+  >) => void;
 };
 
 const WSU_COLORS = [
@@ -68,9 +80,51 @@ function ColorPicker({
   );
 }
 
+function ChoiceTile({
+  name,
+  value,
+  selectedValue,
+  label,
+  description,
+  onChange,
+}: {
+  name: string;
+  value: string;
+  selectedValue: string;
+  label: string;
+  description: string;
+  onChange: (value: string) => void;
+}) {
+  const active = selectedValue === value;
+
+  return (
+    <label
+      className={`block cursor-pointer rounded-[16px] border px-4 py-3 transition ${
+        active
+          ? "border-[var(--wsu-crimson)] bg-[var(--wsu-crimson)]/6 shadow-[0_8px_20px_rgba(152,30,50,0.08)]"
+          : "border-[var(--wsu-gray-light)] bg-white hover:border-[var(--wsu-gray-mid)]/35 hover:bg-[var(--wsu-bg)]/70"
+      }`}
+    >
+      <input
+        type="radio"
+        name={name}
+        value={value}
+        checked={active}
+        onChange={(e) => onChange(e.target.value)}
+        className="sr-only"
+      />
+      <span className="block text-sm font-semibold text-[var(--wsu-gray)]">{label}</span>
+      <span className="mt-1 block text-xs leading-5 text-[var(--wsu-gray-mid)]">
+        {description}
+      </span>
+    </label>
+  );
+}
+
 export function SiteAppearanceForm({
   settings,
   supportsLogoStorage,
+  onHeaderSettingsChange,
 }: Props) {
   const router = useRouter();
   const [pending, setPending] = useState(false);
@@ -81,6 +135,7 @@ export function SiteAppearanceForm({
     logoAlt: settings.logoAlt ?? "",
     logoSizePx: String(settings.logoSizePx ?? DEFAULT_SITE_SETTINGS.logoSizePx),
     headerLayout: settings.headerLayout ?? "side",
+    headerPlacement: settings.headerPlacement ?? DEFAULT_SITE_SETTINGS.headerPlacement,
     brandLine1: settings.brandLine1 ?? "",
     brandLine2: settings.brandLine2 ?? "",
     headerTitle: settings.headerTitle ?? "",
@@ -110,8 +165,33 @@ export function SiteAppearanceForm({
     cardShadow: settings.cardShadow ?? DEFAULT_SITE_SETTINGS.cardShadow,
   });
 
+  function buildLiveHeaderSettings(values: typeof formValues) {
+    return {
+      brandLine1: values.brandLine1.trim() || "",
+      brandLine2: values.brandLine2.trim() || "",
+      headerTitle: values.headerTitle.trim() || "",
+      headerSubtitle: values.headerSubtitle.trim() || "",
+      headerTitleSizePx:
+        values.headerTitleSizePx.trim() === ""
+          ? DEFAULT_SITE_SETTINGS.headerTitleSizePx
+          : Number(values.headerTitleSizePx),
+      logoUrl: values.logoUrl.trim() || null,
+      logoAlt: values.logoAlt.trim() || null,
+      logoSizePx:
+        values.logoSizePx.trim() === ""
+          ? DEFAULT_SITE_SETTINGS.logoSizePx
+          : Number(values.logoSizePx),
+      headerLayout: values.headerLayout as SiteSettingsRow["headerLayout"],
+      headerPlacement: values.headerPlacement as SiteSettingsRow["headerPlacement"],
+    };
+  }
+
   function handleFieldChange(name: string, value: string) {
-    setFormValues((prev) => ({ ...prev, [name]: value }));
+    setFormValues((prev) => {
+      const next = { ...prev, [name]: value };
+      onHeaderSettingsChange?.(buildLiveHeaderSettings(next));
+      return next;
+    });
   }
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -140,14 +220,6 @@ export function SiteAppearanceForm({
     }
   }
 
-  const previewLogoUrl = supportsLogoStorage ? formValues.logoUrl.trim() || null : null;
-  const previewHeaderTitleSize = formValues.headerTitleSizePx.trim() === ""
-    ? DEFAULT_SITE_SETTINGS.headerTitleSizePx
-    : Number(formValues.headerTitleSizePx);
-  const previewLogoSize = formValues.logoSizePx.trim() === ""
-    ? DEFAULT_SITE_SETTINGS.logoSizePx
-    : Number(formValues.logoSizePx);
-
   return (
     <section className="mb-10 rounded-[18px] border border-[var(--wsu-gray-light)] bg-white p-6 shadow-[0_10px_28px_rgba(0,0,0,0.06)]">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
@@ -159,8 +231,8 @@ export function SiteAppearanceForm({
           </p>
         </div>
         <div className="max-w-sm rounded-[18px] bg-[var(--wsu-bg)] px-4 py-3 text-sm leading-6 text-[var(--wsu-gray-mid)] ring-1 ring-black/5">
-          Text fields are optional. Clear any copy field and save to hide it on the site. This
-          form preview is local only until a save succeeds. Color and card styling inputs still
+          Text fields are optional. Clear any copy field and save to hide it on the site. The
+          actual header above updates live while you edit. Color and card styling inputs still
           fall back to their built-in defaults when left blank.
           {supportsLogoStorage
             ? " Add a logo URL to replace the text mark in the upper-left header."
@@ -175,9 +247,14 @@ export function SiteAppearanceForm({
           </p>
         ) : null}
 
-        <div className="grid gap-6 xl:grid-cols-[minmax(0,1.2fr)_minmax(300px,360px)]">
+        <div className="grid gap-6">
           <fieldset className="space-y-4 rounded-[18px] border border-[var(--wsu-gray-light)] p-5">
             <legend className="px-2 text-sm font-semibold text-[var(--wsu-gray)]">Logo and header</legend>
+
+            <p className="text-sm leading-6 text-[var(--wsu-gray-mid)]">
+              The actual header above updates as you type. Use the controls here to move the
+              site title around the brand mark and action buttons.
+            </p>
 
             {supportsLogoStorage ? (
               <>
@@ -207,31 +284,91 @@ export function SiteAppearanceForm({
                     />
                   </label>
                   <label className="block text-xs font-semibold uppercase tracking-wide text-[var(--wsu-gray-mid)]">
-                    Header Layout
-                    <select
-                      name="headerLayout"
-                      value={formValues.headerLayout}
-                      onChange={(e) => handleFieldChange("headerLayout", e.target.value)}
+                    Logo alt text <span className="font-normal normal-case">(optional)</span>
+                    <input
+                      name="logoAlt"
+                      value={formValues.logoAlt}
+                      onChange={(e) => handleFieldChange("logoAlt", e.target.value)}
                       className="mt-1 w-full rounded-xl border border-[var(--wsu-gray-light)] px-3 py-2.5 text-sm"
-                    >
-                      <option value="side">Logo on side</option>
-                      <option value="stacked">Logo on top</option>
-                    </select>
+                      placeholder="Graduate School logo"
+                    />
                   </label>
                 </div>
-
-                <label className="block text-xs font-semibold uppercase tracking-wide text-[var(--wsu-gray-mid)]">
-                  Logo alt text <span className="font-normal normal-case">(optional)</span>
-                  <input
-                    name="logoAlt"
-                    value={formValues.logoAlt}
-                    onChange={(e) => handleFieldChange("logoAlt", e.target.value)}
-                    className="mt-1 w-full rounded-xl border border-[var(--wsu-gray-light)] px-3 py-2.5 text-sm"
-                    placeholder="Graduate School logo"
-                  />
-                </label>
               </>
-            ) : null}
+            ) : (
+              <p className="rounded-[16px] bg-[var(--wsu-bg)] px-4 py-3 text-sm leading-6 text-[var(--wsu-gray-mid)] ring-1 ring-black/5">
+                This database does not support stored logo fields yet, so the header currently
+                uses the text mark below.
+              </p>
+            )}
+
+            <div className="grid gap-6 lg:grid-cols-2">
+              <div className="space-y-3">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-[var(--wsu-gray-mid)]">
+                    Brand mark layout
+                  </p>
+                  <p className="mt-1 text-sm leading-6 text-[var(--wsu-gray-mid)]">
+                    Control whether the logo or text mark sits beside the title or above it.
+                  </p>
+                </div>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <ChoiceTile
+                    name="headerLayout"
+                    value="side"
+                    selectedValue={formValues.headerLayout}
+                    label="Mark beside title"
+                    description="Keeps the brand mark and site title on one line when space allows."
+                    onChange={(value) => handleFieldChange("headerLayout", value)}
+                  />
+                  <ChoiceTile
+                    name="headerLayout"
+                    value="stacked"
+                    selectedValue={formValues.headerLayout}
+                    label="Mark above title"
+                    description="Stacks the brand mark on top of the title for a taller header."
+                    onChange={(value) => handleFieldChange("headerLayout", value)}
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-[var(--wsu-gray-mid)]">
+                    Title and buttons
+                  </p>
+                  <p className="mt-1 text-sm leading-6 text-[var(--wsu-gray-mid)]">
+                    Choose where the site title sits relative to the header action buttons.
+                  </p>
+                </div>
+                <div className="grid gap-3 xl:grid-cols-3">
+                  <ChoiceTile
+                    name="headerPlacement"
+                    value="split"
+                    selectedValue={formValues.headerPlacement}
+                    label="Split"
+                    description="Title and brand on the left, action buttons on the right."
+                    onChange={(value) => handleFieldChange("headerPlacement", value)}
+                  />
+                  <ChoiceTile
+                    name="headerPlacement"
+                    value="stacked"
+                    selectedValue={formValues.headerPlacement}
+                    label="Stacked"
+                    description="Title block first, action buttons below it on the right."
+                    onChange={(value) => handleFieldChange("headerPlacement", value)}
+                  />
+                  <ChoiceTile
+                    name="headerPlacement"
+                    value="centered"
+                    selectedValue={formValues.headerPlacement}
+                    label="Centered"
+                    description="Centers the full header and buttons for a more symmetrical layout."
+                    onChange={(value) => handleFieldChange("headerPlacement", value)}
+                  />
+                </div>
+              </div>
+            </div>
 
             <div className="grid gap-4 sm:grid-cols-2">
               <label className="block text-xs font-semibold uppercase tracking-wide text-[var(--wsu-gray-mid)]">
@@ -293,28 +430,6 @@ export function SiteAppearanceForm({
               </label>
             </div>
           </fieldset>
-
-          <aside className="rounded-[18px] bg-[var(--wsu-bg)] p-5 ring-1 ring-black/5">
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--wsu-crimson)]">
-              Unsaved Header Preview
-            </p>
-            <div className="mt-4 rounded-[18px] border border-[var(--wsu-gray-light)] bg-white p-4">
-              <BrandLockup
-                brandLine1={formValues.brandLine1.trim() || null}
-                brandLine2={formValues.brandLine2.trim() || null}
-                headerTitle={formValues.headerTitle.trim() || null}
-                headerSubtitle={formValues.headerSubtitle.trim() || null}
-                headerTitleSizePx={previewHeaderTitleSize}
-                logoUrl={previewLogoUrl}
-                logoAlt={formValues.logoAlt.trim() || null}
-                logoSizePx={previewLogoSize}
-                headerLayout={formValues.headerLayout}
-              />
-            </div>
-            <p className="mt-4 text-xs leading-5 text-[var(--wsu-gray-mid)]">
-              This shows your local form state before save. The public page only changes after a successful save.
-            </p>
-          </aside>
         </div>
 
         <div className="grid gap-6 lg:grid-cols-2">

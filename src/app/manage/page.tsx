@@ -28,7 +28,6 @@ export default async function ManagePage() {
 
   return (
     <>
-      <SiteHeader settings={settings} />
       <ManageBoard
         initialApps={apps}
         settings={settings}

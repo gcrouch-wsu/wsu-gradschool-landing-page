@@ -28,6 +28,7 @@ function normalizeSettingsRow(
     logoAlt: capabilities.supportsLogoStorage ? row.logoAlt ?? null : null,
     logoSizePx: row.logoSizePx ? Number(row.logoSizePx) : DEFAULT_SITE_SETTINGS.logoSizePx,
     headerLayout: row.headerLayout ?? DEFAULT_SITE_SETTINGS.headerLayout,
+    headerPlacement: row.headerPlacement ?? DEFAULT_SITE_SETTINGS.headerPlacement,
     headerTitleSizePx: capabilities.supportsHeaderTitleSize
       ? Number(row.headerTitleSizePx ?? DEFAULT_SITE_SETTINGS.headerTitleSizePx)
       : DEFAULT_SITE_SETTINGS.headerTitleSizePx,
@@ -84,7 +85,7 @@ async function querySiteSettings(): Promise<SiteSettingsRow | null> {
     
     const selectFields: string[] = ["id"];
     const allExpected = [
-      "logo_url", "logo_alt", "logo_size_px", "header_layout",
+      "logo_url", "logo_alt", "logo_size_px", "header_layout", "header_placement",
       "brand_line1", "brand_line2", "header_title", "header_subtitle",
       "header_title_size_px", "hero_title", "hero_lede", "empty_state_text",
       "manage_add_title", "manage_add_blurb", "manage_order_title",
