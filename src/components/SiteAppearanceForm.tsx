@@ -16,11 +16,20 @@ type Props = {
     | "headerTitle"
     | "headerSubtitle"
     | "headerTitleSizePx"
+    | "headerTextPaddingTopPx"
+    | "headerTextPaddingBottomPx"
+    | "headerTitleSubtitleGapPx"
     | "logoUrl"
     | "logoAlt"
     | "logoSizePx"
     | "headerLayout"
     | "headerPlacement"
+    | "colorPrimary"
+    | "colorPrimaryDark"
+    | "colorText"
+    | "colorTextMuted"
+    | "colorBorder"
+    | "colorPageBg"
   >) => void;
 };
 
@@ -141,6 +150,15 @@ export function SiteAppearanceForm({
     headerTitle: settings.headerTitle ?? "",
     headerSubtitle: settings.headerSubtitle ?? "",
     headerTitleSizePx: String(settings.headerTitleSizePx ?? DEFAULT_SITE_SETTINGS.headerTitleSizePx),
+    headerTextPaddingTopPx: String(
+      settings.headerTextPaddingTopPx ?? DEFAULT_SITE_SETTINGS.headerTextPaddingTopPx,
+    ),
+    headerTextPaddingBottomPx: String(
+      settings.headerTextPaddingBottomPx ?? DEFAULT_SITE_SETTINGS.headerTextPaddingBottomPx,
+    ),
+    headerTitleSubtitleGapPx: String(
+      settings.headerTitleSubtitleGapPx ?? DEFAULT_SITE_SETTINGS.headerTitleSubtitleGapPx,
+    ),
     heroTitle: settings.heroTitle ?? "",
     heroLede: settings.heroLede ?? "",
     emptyStateText: settings.emptyStateText ?? "",
@@ -158,11 +176,6 @@ export function SiteAppearanceForm({
     colorTextMuted: settings.colorTextMuted ?? DEFAULT_SITE_SETTINGS.colorTextMuted,
     colorBorder: settings.colorBorder ?? DEFAULT_SITE_SETTINGS.colorBorder,
     colorPageBg: settings.colorPageBg ?? DEFAULT_SITE_SETTINGS.colorPageBg,
-    colorCardBg: settings.colorCardBg ?? DEFAULT_SITE_SETTINGS.colorCardBg,
-    colorCardAccent: settings.colorCardAccent ?? DEFAULT_SITE_SETTINGS.colorCardAccent,
-    colorUrlOnCard: settings.colorUrlOnCard ?? DEFAULT_SITE_SETTINGS.colorUrlOnCard,
-    cardRadiusPx: String(settings.cardRadiusPx ?? DEFAULT_SITE_SETTINGS.cardRadiusPx),
-    cardShadow: settings.cardShadow ?? DEFAULT_SITE_SETTINGS.cardShadow,
   });
 
   function buildLiveHeaderSettings(values: typeof formValues) {
@@ -175,6 +188,18 @@ export function SiteAppearanceForm({
         values.headerTitleSizePx.trim() === ""
           ? DEFAULT_SITE_SETTINGS.headerTitleSizePx
           : Number(values.headerTitleSizePx),
+      headerTextPaddingTopPx:
+        values.headerTextPaddingTopPx.trim() === ""
+          ? DEFAULT_SITE_SETTINGS.headerTextPaddingTopPx
+          : Number(values.headerTextPaddingTopPx),
+      headerTextPaddingBottomPx:
+        values.headerTextPaddingBottomPx.trim() === ""
+          ? DEFAULT_SITE_SETTINGS.headerTextPaddingBottomPx
+          : Number(values.headerTextPaddingBottomPx),
+      headerTitleSubtitleGapPx:
+        values.headerTitleSubtitleGapPx.trim() === ""
+          ? DEFAULT_SITE_SETTINGS.headerTitleSubtitleGapPx
+          : Number(values.headerTitleSubtitleGapPx),
       logoUrl: values.logoUrl.trim() || null,
       logoAlt: values.logoAlt.trim() || null,
       logoSizePx:
@@ -183,6 +208,12 @@ export function SiteAppearanceForm({
           : Number(values.logoSizePx),
       headerLayout: values.headerLayout as SiteSettingsRow["headerLayout"],
       headerPlacement: values.headerPlacement as SiteSettingsRow["headerPlacement"],
+      colorPrimary: values.colorPrimary.trim() || DEFAULT_SITE_SETTINGS.colorPrimary,
+      colorPrimaryDark: values.colorPrimaryDark.trim() || DEFAULT_SITE_SETTINGS.colorPrimaryDark,
+      colorText: values.colorText.trim() || DEFAULT_SITE_SETTINGS.colorText,
+      colorTextMuted: values.colorTextMuted.trim() || DEFAULT_SITE_SETTINGS.colorTextMuted,
+      colorBorder: values.colorBorder.trim() || DEFAULT_SITE_SETTINGS.colorBorder,
+      colorPageBg: values.colorPageBg.trim() || DEFAULT_SITE_SETTINGS.colorPageBg,
     };
   }
 
@@ -226,14 +257,14 @@ export function SiteAppearanceForm({
         <div className="max-w-2xl">
           <h2 className="text-lg font-bold text-[var(--wsu-gray)]">Page and appearance</h2>
           <p className="mt-1 text-sm leading-6 text-[var(--wsu-gray-mid)]">
-            Update the public page, login screen, card styling, and header branding from one
-            place.
+            Update the public page, login screen, and header branding from one place. Card
+            styling lives in the Card order and styling tab.
           </p>
         </div>
         <div className="max-w-sm rounded-[18px] bg-[var(--wsu-bg)] px-4 py-3 text-sm leading-6 text-[var(--wsu-gray-mid)] ring-1 ring-black/5">
           Text fields are optional. Clear any copy field and save to hide it on the site. The
-          actual header above updates live while you edit. Color and card styling inputs still
-          fall back to their built-in defaults when left blank.
+          actual header above updates live while you edit. Color inputs still fall back to
+          their built-in defaults when left blank.
           {supportsLogoStorage
             ? " Add a logo URL to replace the text mark in the upper-left header."
             : " The header currently uses the text mark because this database has not enabled logo storage yet."}
@@ -429,6 +460,45 @@ export function SiteAppearanceForm({
                 />
               </label>
             </div>
+
+            <div className="grid gap-4 sm:grid-cols-3">
+              <label className="block text-xs font-semibold uppercase tracking-wide text-[var(--wsu-gray-mid)]">
+                Title top padding (px)
+                <input
+                  name="headerTextPaddingTopPx"
+                  type="number"
+                  min={0}
+                  max={48}
+                  value={formValues.headerTextPaddingTopPx}
+                  onChange={(e) => handleFieldChange("headerTextPaddingTopPx", e.target.value)}
+                  className="mt-1 w-full rounded-xl border border-[var(--wsu-gray-light)] px-3 py-2.5 text-sm"
+                />
+              </label>
+              <label className="block text-xs font-semibold uppercase tracking-wide text-[var(--wsu-gray-mid)]">
+                Title bottom padding (px)
+                <input
+                  name="headerTextPaddingBottomPx"
+                  type="number"
+                  min={0}
+                  max={48}
+                  value={formValues.headerTextPaddingBottomPx}
+                  onChange={(e) => handleFieldChange("headerTextPaddingBottomPx", e.target.value)}
+                  className="mt-1 w-full rounded-xl border border-[var(--wsu-gray-light)] px-3 py-2.5 text-sm"
+                />
+              </label>
+              <label className="block text-xs font-semibold uppercase tracking-wide text-[var(--wsu-gray-mid)]">
+                Title/subtitle gap (px)
+                <input
+                  name="headerTitleSubtitleGapPx"
+                  type="number"
+                  min={0}
+                  max={32}
+                  value={formValues.headerTitleSubtitleGapPx}
+                  onChange={(e) => handleFieldChange("headerTitleSubtitleGapPx", e.target.value)}
+                  className="mt-1 w-full rounded-xl border border-[var(--wsu-gray-light)] px-3 py-2.5 text-sm"
+                />
+              </label>
+            </div>
           </fieldset>
         </div>
 
@@ -557,67 +627,12 @@ export function SiteAppearanceForm({
               fallback={DEFAULT_SITE_SETTINGS.colorPageBg}
               onChange={(hex) => handleFieldChange("colorPageBg", hex)}
             />
-            <ColorPicker
-              name="colorCardBg"
-              label="Card Background"
-              value={formValues.colorCardBg}
-              fallback={DEFAULT_SITE_SETTINGS.colorCardBg}
-              onChange={(hex) => handleFieldChange("colorCardBg", hex)}
-            />
-            <ColorPicker
-              name="colorCardAccent"
-              label="Card Stripe"
-              value={formValues.colorCardAccent}
-              fallback={DEFAULT_SITE_SETTINGS.colorCardAccent}
-              onChange={(hex) => handleFieldChange("colorCardAccent", hex)}
-            />
-            <ColorPicker
-              name="colorUrlOnCard"
-              label="Card URL"
-              value={formValues.colorUrlOnCard}
-              fallback={DEFAULT_SITE_SETTINGS.colorUrlOnCard}
-              onChange={(hex) => handleFieldChange("colorUrlOnCard", hex)}
-            />
-          </div>
-        </fieldset>
-
-        <fieldset className="space-y-4 rounded-[18px] border border-[var(--wsu-gray-light)] p-5">
-          <legend className="px-2 text-sm font-semibold text-[var(--wsu-gray)]">Cards</legend>
-
-          <div className="flex flex-wrap gap-4">
-            <label className="block text-xs font-semibold uppercase tracking-wide text-[var(--wsu-gray-mid)]">
-              Corner radius (px)
-              <input
-                name="cardRadiusPx"
-                type="number"
-                min={4}
-                max={32}
-                value={formValues.cardRadiusPx}
-                onChange={(e) => handleFieldChange("cardRadiusPx", e.target.value)}
-                className="mt-1 block w-32 rounded-xl border border-[var(--wsu-gray-light)] px-3 py-2.5 text-sm"
-              />
-            </label>
-
-            <label className="block text-xs font-semibold uppercase tracking-wide text-[var(--wsu-gray-mid)]">
-              Shadow
-              <select
-                name="cardShadow"
-                value={formValues.cardShadow}
-                onChange={(e) => handleFieldChange("cardShadow", e.target.value)}
-                className="mt-1 block rounded-xl border border-[var(--wsu-gray-light)] px-3 py-2.5 text-sm"
-              >
-                <option value="none">None</option>
-                <option value="sm">Small</option>
-                <option value="md">Medium</option>
-                <option value="lg">Large</option>
-              </select>
-            </label>
           </div>
         </fieldset>
 
         <div className="flex flex-col gap-3 rounded-[18px] bg-[var(--wsu-bg)] px-4 py-4 ring-1 ring-black/5 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-sm leading-6 text-[var(--wsu-gray-mid)]">
-            Clear any text field to hide it on the site. Colors and radius fall back to defaults if blank.
+            Clear any text field to hide it on the site. Colors fall back to defaults if blank.
           </p>
           <button
             type="submit"

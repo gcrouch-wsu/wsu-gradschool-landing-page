@@ -7,12 +7,19 @@ import { z } from "zod";
 import { getDb } from "@/lib/db";
 import {
   DEFAULT_SITE_SETTINGS,
+  getSiteSettings,
 } from "@/lib/settings";
 import { SESSION_COOKIE, verifySessionToken } from "@/lib/session";
 
 const shadowValues = ["none", "sm", "md", "lg"] as const;
 const headerLayoutValues = ["side", "stacked"] as const;
 const headerPlacementValues = ["split", "stacked", "centered"] as const;
+const cardFontFamilyValues = [
+  "montserrat",
+  "ibm-plex-sans",
+  "space-grotesk",
+  "source-serif-4",
+] as const;
 
 const textOrBlank = (max: number) =>
   z.string().trim().max(max, `Keep this under ${max} characters`);
@@ -68,6 +75,14 @@ const headerPlacementOrBlank = z.preprocess(
   z.enum(headerPlacementValues).optional(),
 );
 
+const cardFontFamilyOrBlank = z.preprocess(
+  (value) => {
+    const text = String(value ?? "").trim();
+    return text === "" ? undefined : text;
+  },
+  z.enum(cardFontFamilyValues).optional(),
+);
+
 const settingsSchema = z.object({
   logoUrl: logoUrlOrBlank,
   logoAlt: textOrBlank(160),
@@ -79,6 +94,9 @@ const settingsSchema = z.object({
   headerTitle: textOrBlank(120),
   headerSubtitle: textOrBlank(200),
   headerTitleSizePx: numberOrBlank(18, 48),
+  headerTextPaddingTopPx: numberOrBlank(0, 48),
+  headerTextPaddingBottomPx: numberOrBlank(0, 48),
+  headerTitleSubtitleGapPx: numberOrBlank(0, 32),
   heroTitle: textOrBlank(120),
   heroLede: textOrBlank(2000),
   emptyStateText: textOrBlank(2000),
@@ -97,8 +115,17 @@ const settingsSchema = z.object({
   colorBorder: hexOrBlank,
   colorPageBg: hexOrBlank,
   colorCardBg: hexOrBlank,
+  colorCardBorder: hexOrBlank,
   colorCardAccent: hexOrBlank,
+  colorCardTitle: hexOrBlank,
+  colorCardDescription: hexOrBlank,
   colorUrlOnCard: hexOrBlank,
+  cardFontFamily: cardFontFamilyOrBlank,
+  cardTitleSizePx: numberOrBlank(14, 32),
+  cardUrlSizePx: numberOrBlank(10, 24),
+  cardDescriptionSizePx: numberOrBlank(12, 28),
+  cardPaddingPx: numberOrBlank(12, 36),
+  cardAccentHeightPx: numberOrBlank(2, 16),
   cardRadiusPx: numberOrBlank(4, 32),
   cardShadow: shadowOrBlank,
 });
@@ -107,6 +134,14 @@ type NormalizedSettings = ReturnType<typeof buildNormalizedSettings>;
 
 function readString(formData: FormData, key: string): string {
   return String(formData.get(key) ?? "");
+}
+
+function readMergedValue(formData: FormData, key: string, fallback: unknown): string {
+  if (formData.has(key)) {
+    return readString(formData, key);
+  }
+  if (fallback == null) return "";
+  return String(fallback);
 }
 
 function cleanTextOrEmpty(value: string): string {
@@ -130,6 +165,12 @@ function buildNormalizedSettings(v: z.infer<typeof settingsSchema>) {
     headerTitle: cleanTextOrEmpty(v.headerTitle),
     headerSubtitle: cleanTextOrEmpty(v.headerSubtitle),
     headerTitleSizePx: v.headerTitleSizePx ?? DEFAULT_SITE_SETTINGS.headerTitleSizePx,
+    headerTextPaddingTopPx:
+      v.headerTextPaddingTopPx ?? DEFAULT_SITE_SETTINGS.headerTextPaddingTopPx,
+    headerTextPaddingBottomPx:
+      v.headerTextPaddingBottomPx ?? DEFAULT_SITE_SETTINGS.headerTextPaddingBottomPx,
+    headerTitleSubtitleGapPx:
+      v.headerTitleSubtitleGapPx ?? DEFAULT_SITE_SETTINGS.headerTitleSubtitleGapPx,
     heroTitle: cleanTextOrEmpty(v.heroTitle),
     heroLede: cleanTextOrEmpty(v.heroLede),
     emptyStateText: cleanTextOrEmpty(v.emptyStateText),
@@ -148,8 +189,21 @@ function buildNormalizedSettings(v: z.infer<typeof settingsSchema>) {
     colorBorder: fallbackText(v.colorBorder, DEFAULT_SITE_SETTINGS.colorBorder),
     colorPageBg: fallbackText(v.colorPageBg, DEFAULT_SITE_SETTINGS.colorPageBg),
     colorCardBg: fallbackText(v.colorCardBg, DEFAULT_SITE_SETTINGS.colorCardBg),
+    colorCardBorder: fallbackText(v.colorCardBorder, DEFAULT_SITE_SETTINGS.colorCardBorder),
     colorCardAccent: fallbackText(v.colorCardAccent, DEFAULT_SITE_SETTINGS.colorCardAccent),
+    colorCardTitle: fallbackText(v.colorCardTitle, DEFAULT_SITE_SETTINGS.colorCardTitle),
+    colorCardDescription: fallbackText(
+      v.colorCardDescription,
+      DEFAULT_SITE_SETTINGS.colorCardDescription,
+    ),
     colorUrlOnCard: fallbackText(v.colorUrlOnCard, DEFAULT_SITE_SETTINGS.colorUrlOnCard),
+    cardFontFamily: v.cardFontFamily ?? DEFAULT_SITE_SETTINGS.cardFontFamily,
+    cardTitleSizePx: v.cardTitleSizePx ?? DEFAULT_SITE_SETTINGS.cardTitleSizePx,
+    cardUrlSizePx: v.cardUrlSizePx ?? DEFAULT_SITE_SETTINGS.cardUrlSizePx,
+    cardDescriptionSizePx:
+      v.cardDescriptionSizePx ?? DEFAULT_SITE_SETTINGS.cardDescriptionSizePx,
+    cardPaddingPx: v.cardPaddingPx ?? DEFAULT_SITE_SETTINGS.cardPaddingPx,
+    cardAccentHeightPx: v.cardAccentHeightPx ?? DEFAULT_SITE_SETTINGS.cardAccentHeightPx,
     cardRadiusPx: v.cardRadiusPx ?? DEFAULT_SITE_SETTINGS.cardRadiusPx,
     cardShadow: v.cardShadow ?? DEFAULT_SITE_SETTINGS.cardShadow,
     updatedAt: new Date(),
@@ -169,6 +223,8 @@ type Capabilities = {
   supportsHeaderTitleSize: boolean;
   supportsNewLogoHeaderFields: boolean;
   supportsHeaderPlacement: boolean;
+  supportsHeaderSpacing: boolean;
+  supportsAdvancedCardStyling: boolean;
 };
 
 async function saveSettings(settings: NormalizedSettings, caps: Capabilities) {
@@ -197,6 +253,11 @@ async function saveSettings(settings: NormalizedSettings, caps: Capabilities) {
   if (caps.supportsHeaderTitleSize) {
     add("header_title_size_px", settings.headerTitleSizePx);
   }
+  if (caps.supportsHeaderSpacing) {
+    add("header_text_padding_top_px", settings.headerTextPaddingTopPx);
+    add("header_text_padding_bottom_px", settings.headerTextPaddingBottomPx);
+    add("header_title_subtitle_gap_px", settings.headerTitleSubtitleGapPx);
+  }
 
   add("brand_line1", settings.brandLine1);
   add("brand_line2", settings.brandLine2);
@@ -220,8 +281,23 @@ async function saveSettings(settings: NormalizedSettings, caps: Capabilities) {
   add("color_border", settings.colorBorder);
   add("color_page_bg", settings.colorPageBg);
   add("color_card_bg", settings.colorCardBg);
+  if (caps.supportsAdvancedCardStyling) {
+    add("color_card_border", settings.colorCardBorder);
+  }
   add("color_card_accent", settings.colorCardAccent);
+  if (caps.supportsAdvancedCardStyling) {
+    add("color_card_title", settings.colorCardTitle);
+    add("color_card_description", settings.colorCardDescription);
+  }
   add("color_url_on_card", settings.colorUrlOnCard);
+  if (caps.supportsAdvancedCardStyling) {
+    add("card_font_family", settings.cardFontFamily);
+    add("card_title_size_px", settings.cardTitleSizePx);
+    add("card_url_size_px", settings.cardUrlSizePx);
+    add("card_description_size_px", settings.cardDescriptionSizePx);
+    add("card_padding_px", settings.cardPaddingPx);
+    add("card_accent_height_px", settings.cardAccentHeightPx);
+  }
   add("card_radius_px", settings.cardRadiusPx);
   add("card_shadow", settings.cardShadow);
   add("updated_at", settings.updatedAt);
@@ -239,42 +315,149 @@ type ColumnRow = Record<string, unknown> & {
 
 export async function updateSiteSettingsAction(formData: FormData) {
   await requireSession();
-  // ... (rest of parsing logic)
-
+  const currentSettings = await getSiteSettings();
 
   const raw = {
-    logoUrl: readString(formData, "logoUrl"),
-    logoAlt: readString(formData, "logoAlt"),
-    logoSizePx: readString(formData, "logoSizePx"),
-    headerLayout: readString(formData, "headerLayout"),
-    headerPlacement: readString(formData, "headerPlacement"),
-    brandLine1: readString(formData, "brandLine1"),
-    brandLine2: readString(formData, "brandLine2"),
-    headerTitle: readString(formData, "headerTitle"),
-    headerSubtitle: readString(formData, "headerSubtitle"),
-    headerTitleSizePx: readString(formData, "headerTitleSizePx"),
-    heroTitle: readString(formData, "heroTitle"),
-    heroLede: readString(formData, "heroLede"),
-    emptyStateText: readString(formData, "emptyStateText"),
-    manageAddTitle: readString(formData, "manageAddTitle"),
-    manageAddBlurb: readString(formData, "manageAddBlurb"),
-    manageOrderTitle: readString(formData, "manageOrderTitle"),
-    manageOrderBlurb: readString(formData, "manageOrderBlurb"),
-    manageEmptyDragText: readString(formData, "manageEmptyDragText"),
-    loginTitle: readString(formData, "loginTitle"),
-    loginLede: readString(formData, "loginLede"),
-    loginBackLabel: readString(formData, "loginBackLabel"),
-    colorPrimary: readString(formData, "colorPrimary"),
-    colorPrimaryDark: readString(formData, "colorPrimaryDark"),
-    colorText: readString(formData, "colorText"),
-    colorTextMuted: readString(formData, "colorTextMuted"),
-    colorBorder: readString(formData, "colorBorder"),
-    colorPageBg: readString(formData, "colorPageBg"),
-    colorCardBg: readString(formData, "colorCardBg"),
-    colorCardAccent: readString(formData, "colorCardAccent"),
-    colorUrlOnCard: readString(formData, "colorUrlOnCard"),
-    cardRadiusPx: readString(formData, "cardRadiusPx"),
-    cardShadow: readString(formData, "cardShadow"),
+    logoUrl: readMergedValue(formData, "logoUrl", currentSettings.logoUrl),
+    logoAlt: readMergedValue(formData, "logoAlt", currentSettings.logoAlt),
+    logoSizePx: readMergedValue(formData, "logoSizePx", currentSettings.logoSizePx),
+    headerLayout: readMergedValue(formData, "headerLayout", currentSettings.headerLayout),
+    headerPlacement: readMergedValue(
+      formData,
+      "headerPlacement",
+      currentSettings.headerPlacement,
+    ),
+    brandLine1: readMergedValue(formData, "brandLine1", currentSettings.brandLine1),
+    brandLine2: readMergedValue(formData, "brandLine2", currentSettings.brandLine2),
+    headerTitle: readMergedValue(formData, "headerTitle", currentSettings.headerTitle),
+    headerSubtitle: readMergedValue(
+      formData,
+      "headerSubtitle",
+      currentSettings.headerSubtitle,
+    ),
+    headerTitleSizePx: readMergedValue(
+      formData,
+      "headerTitleSizePx",
+      currentSettings.headerTitleSizePx,
+    ),
+    headerTextPaddingTopPx: readMergedValue(
+      formData,
+      "headerTextPaddingTopPx",
+      currentSettings.headerTextPaddingTopPx,
+    ),
+    headerTextPaddingBottomPx: readMergedValue(
+      formData,
+      "headerTextPaddingBottomPx",
+      currentSettings.headerTextPaddingBottomPx,
+    ),
+    headerTitleSubtitleGapPx: readMergedValue(
+      formData,
+      "headerTitleSubtitleGapPx",
+      currentSettings.headerTitleSubtitleGapPx,
+    ),
+    heroTitle: readMergedValue(formData, "heroTitle", currentSettings.heroTitle),
+    heroLede: readMergedValue(formData, "heroLede", currentSettings.heroLede),
+    emptyStateText: readMergedValue(
+      formData,
+      "emptyStateText",
+      currentSettings.emptyStateText,
+    ),
+    manageAddTitle: readMergedValue(
+      formData,
+      "manageAddTitle",
+      currentSettings.manageAddTitle,
+    ),
+    manageAddBlurb: readMergedValue(
+      formData,
+      "manageAddBlurb",
+      currentSettings.manageAddBlurb,
+    ),
+    manageOrderTitle: readMergedValue(
+      formData,
+      "manageOrderTitle",
+      currentSettings.manageOrderTitle,
+    ),
+    manageOrderBlurb: readMergedValue(
+      formData,
+      "manageOrderBlurb",
+      currentSettings.manageOrderBlurb,
+    ),
+    manageEmptyDragText: readMergedValue(
+      formData,
+      "manageEmptyDragText",
+      currentSettings.manageEmptyDragText,
+    ),
+    loginTitle: readMergedValue(formData, "loginTitle", currentSettings.loginTitle),
+    loginLede: readMergedValue(formData, "loginLede", currentSettings.loginLede),
+    loginBackLabel: readMergedValue(
+      formData,
+      "loginBackLabel",
+      currentSettings.loginBackLabel,
+    ),
+    colorPrimary: readMergedValue(formData, "colorPrimary", currentSettings.colorPrimary),
+    colorPrimaryDark: readMergedValue(
+      formData,
+      "colorPrimaryDark",
+      currentSettings.colorPrimaryDark,
+    ),
+    colorText: readMergedValue(formData, "colorText", currentSettings.colorText),
+    colorTextMuted: readMergedValue(
+      formData,
+      "colorTextMuted",
+      currentSettings.colorTextMuted,
+    ),
+    colorBorder: readMergedValue(formData, "colorBorder", currentSettings.colorBorder),
+    colorPageBg: readMergedValue(formData, "colorPageBg", currentSettings.colorPageBg),
+    colorCardBg: readMergedValue(formData, "colorCardBg", currentSettings.colorCardBg),
+    colorCardBorder: readMergedValue(
+      formData,
+      "colorCardBorder",
+      currentSettings.colorCardBorder,
+    ),
+    colorCardAccent: readMergedValue(
+      formData,
+      "colorCardAccent",
+      currentSettings.colorCardAccent,
+    ),
+    colorCardTitle: readMergedValue(
+      formData,
+      "colorCardTitle",
+      currentSettings.colorCardTitle,
+    ),
+    colorCardDescription: readMergedValue(
+      formData,
+      "colorCardDescription",
+      currentSettings.colorCardDescription,
+    ),
+    colorUrlOnCard: readMergedValue(
+      formData,
+      "colorUrlOnCard",
+      currentSettings.colorUrlOnCard,
+    ),
+    cardFontFamily: readMergedValue(
+      formData,
+      "cardFontFamily",
+      currentSettings.cardFontFamily,
+    ),
+    cardTitleSizePx: readMergedValue(
+      formData,
+      "cardTitleSizePx",
+      currentSettings.cardTitleSizePx,
+    ),
+    cardUrlSizePx: readMergedValue(formData, "cardUrlSizePx", currentSettings.cardUrlSizePx),
+    cardDescriptionSizePx: readMergedValue(
+      formData,
+      "cardDescriptionSizePx",
+      currentSettings.cardDescriptionSizePx,
+    ),
+    cardPaddingPx: readMergedValue(formData, "cardPaddingPx", currentSettings.cardPaddingPx),
+    cardAccentHeightPx: readMergedValue(
+      formData,
+      "cardAccentHeightPx",
+      currentSettings.cardAccentHeightPx,
+    ),
+    cardRadiusPx: readMergedValue(formData, "cardRadiusPx", currentSettings.cardRadiusPx),
+    cardShadow: readMergedValue(formData, "cardShadow", currentSettings.cardShadow),
   };
 
   const parsed = settingsSchema.safeParse(raw);
@@ -297,6 +480,20 @@ export async function updateSiteSettingsAction(formData: FormData) {
       supportsHeaderTitleSize: existingColumns.has("header_title_size_px"),
       supportsNewLogoHeaderFields: existingColumns.has("logo_size_px") && existingColumns.has("header_layout"),
       supportsHeaderPlacement: existingColumns.has("header_placement"),
+      supportsHeaderSpacing:
+        existingColumns.has("header_text_padding_top_px") &&
+        existingColumns.has("header_text_padding_bottom_px") &&
+        existingColumns.has("header_title_subtitle_gap_px"),
+      supportsAdvancedCardStyling:
+        existingColumns.has("color_card_border") &&
+        existingColumns.has("color_card_title") &&
+        existingColumns.has("color_card_description") &&
+        existingColumns.has("card_font_family") &&
+        existingColumns.has("card_title_size_px") &&
+        existingColumns.has("card_url_size_px") &&
+        existingColumns.has("card_description_size_px") &&
+        existingColumns.has("card_padding_px") &&
+        existingColumns.has("card_accent_height_px"),
     };
 
     await saveSettings(normalized, caps);
@@ -319,6 +516,36 @@ export async function updateSiteSettingsAction(formData: FormData) {
     }
     if (!caps.supportsHeaderPlacement && normalized.headerPlacement !== DEFAULT_SITE_SETTINGS.headerPlacement) {
       fieldErrors.headerPlacement = ["Header placement is not available in the database yet. Other settings were saved."];
+    }
+    if (
+      !caps.supportsHeaderSpacing &&
+      (
+        normalized.headerTextPaddingTopPx !== DEFAULT_SITE_SETTINGS.headerTextPaddingTopPx ||
+        normalized.headerTextPaddingBottomPx !== DEFAULT_SITE_SETTINGS.headerTextPaddingBottomPx ||
+        normalized.headerTitleSubtitleGapPx !== DEFAULT_SITE_SETTINGS.headerTitleSubtitleGapPx
+      )
+    ) {
+      fieldErrors.headerTextPaddingTopPx = [
+        "Header text spacing is not available in the database yet. Other settings were saved.",
+      ];
+    }
+    if (
+      !caps.supportsAdvancedCardStyling &&
+      (
+        normalized.colorCardBorder !== DEFAULT_SITE_SETTINGS.colorCardBorder ||
+        normalized.colorCardTitle !== DEFAULT_SITE_SETTINGS.colorCardTitle ||
+        normalized.colorCardDescription !== DEFAULT_SITE_SETTINGS.colorCardDescription ||
+        normalized.cardFontFamily !== DEFAULT_SITE_SETTINGS.cardFontFamily ||
+        normalized.cardTitleSizePx !== DEFAULT_SITE_SETTINGS.cardTitleSizePx ||
+        normalized.cardUrlSizePx !== DEFAULT_SITE_SETTINGS.cardUrlSizePx ||
+        normalized.cardDescriptionSizePx !== DEFAULT_SITE_SETTINGS.cardDescriptionSizePx ||
+        normalized.cardPaddingPx !== DEFAULT_SITE_SETTINGS.cardPaddingPx ||
+        normalized.cardAccentHeightPx !== DEFAULT_SITE_SETTINGS.cardAccentHeightPx
+      )
+    ) {
+      fieldErrors.cardFontFamily = [
+        "Advanced card styling is not available in the database yet. Other settings were saved.",
+      ];
     }
 
     if (Object.keys(fieldErrors).length > 0) {

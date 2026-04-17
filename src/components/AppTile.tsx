@@ -11,18 +11,37 @@ export function AppTile({ app, href, className = "" }: TileProps) {
   const inner = (
     <>
       <div
-        className="h-1.5 w-full bg-[var(--wsu-card-accent)]"
+        className="w-full bg-[var(--wsu-card-accent)]"
+        style={{ height: "var(--wsu-card-accent-height,6px)" }}
         aria-hidden
       />
-      <div className="flex min-h-0 flex-1 flex-col p-5 pt-4">
+      <div
+        className="flex min-h-0 flex-1 flex-col"
+        style={{
+          padding: "var(--wsu-card-padding,20px)",
+          paddingTop: "calc(var(--wsu-card-padding,20px) - 4px)",
+          fontFamily: "var(--wsu-card-font-family,var(--font-montserrat),system-ui,sans-serif)",
+        }}
+      >
         <div>
-          <h2 className="text-base font-bold leading-6 text-[var(--wsu-gray)]">{app.title}</h2>
-          <p className="mt-2 overflow-hidden break-all text-xs font-semibold leading-5 text-[var(--wsu-url-on-card)] [display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:2]">
+          <h2
+            className="font-bold leading-[1.2] text-[var(--wsu-card-title)]"
+            style={{ fontSize: "var(--wsu-card-title-size,16px)" }}
+          >
+            {app.title}
+          </h2>
+          <p
+            className="mt-2 overflow-hidden break-all font-semibold leading-5 text-[var(--wsu-url-on-card)] [display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:2]"
+            style={{ fontSize: "var(--wsu-card-url-size,12px)" }}
+          >
             {app.url}
           </p>
         </div>
         {app.description ? (
-          <p className="mt-4 overflow-hidden text-sm leading-6 text-[var(--wsu-gray-mid)] [display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:4]">
+          <p
+            className="mt-4 overflow-hidden leading-6 text-[var(--wsu-card-description)] [display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:4]"
+            style={{ fontSize: "var(--wsu-card-description-size,14px)" }}
+          >
             {app.description}
           </p>
         ) : null}
@@ -35,20 +54,23 @@ export function AppTile({ app, href, className = "" }: TileProps) {
     </>
   );
 
-  const shell = `group flex h-full ${href ? "min-h-[15rem]" : "min-h-[11rem]"} flex-col overflow-hidden rounded-[length:var(--wsu-card-radius,10px)] bg-[var(--wsu-card-bg,#fff)] ring-1 ring-black/5 transition duration-200 hover:-translate-y-0.5 hover:opacity-[0.99] ${className}`;
+  const shell = `group flex h-full ${href ? "min-h-[15rem]" : "min-h-[11rem]"} flex-col overflow-hidden rounded-[length:var(--wsu-card-radius,10px)] border bg-[var(--wsu-card-bg,#fff)] transition duration-200 hover:-translate-y-0.5 hover:opacity-[0.99] ${className}`;
 
-  const shadowStyle = { boxShadow: "var(--wsu-card-shadow,0 4px 14px rgba(0,0,0,0.08))" };
+  const shellStyle = {
+    boxShadow: "var(--wsu-card-shadow,0 4px 14px rgba(0,0,0,0.08))",
+    borderColor: "var(--wsu-card-border,var(--wsu-gray-light))",
+  };
 
   if (href) {
     return (
-      <a href={href} target="_blank" rel="noopener noreferrer" className={shell} style={shadowStyle}>
+      <a href={href} target="_blank" rel="noopener noreferrer" className={shell} style={shellStyle}>
         {inner}
       </a>
     );
   }
 
   return (
-    <div className={shell} style={shadowStyle}>
+    <div className={shell} style={shellStyle}>
       {inner}
     </div>
   );

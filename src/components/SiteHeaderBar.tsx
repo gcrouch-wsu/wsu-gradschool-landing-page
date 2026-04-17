@@ -12,6 +12,9 @@ export type HeaderDisplaySettings = Pick<
   | "headerTitle"
   | "headerSubtitle"
   | "headerTitleSizePx"
+  | "headerTextPaddingTopPx"
+  | "headerTextPaddingBottomPx"
+  | "headerTitleSubtitleGapPx"
   | "logoUrl"
   | "logoAlt"
   | "logoSizePx"
@@ -78,6 +81,9 @@ export function SiteHeaderBar({ settings, actions = [] }: Props) {
       headerTitle={settings.headerTitle}
       headerSubtitle={settings.headerSubtitle}
       headerTitleSizePx={settings.headerTitleSizePx}
+      headerTextPaddingTopPx={settings.headerTextPaddingTopPx}
+      headerTextPaddingBottomPx={settings.headerTextPaddingBottomPx}
+      headerTitleSubtitleGapPx={settings.headerTitleSubtitleGapPx}
       logoUrl={settings.logoUrl}
       logoAlt={settings.logoAlt}
       logoSizePx={settings.logoSizePx}

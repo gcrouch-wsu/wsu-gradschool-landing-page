@@ -7,6 +7,9 @@ type BrandLockupProps = {
   headerTitle?: string | null;
   headerSubtitle?: string | null;
   headerTitleSizePx?: number | null;
+  headerTextPaddingTopPx?: number | null;
+  headerTextPaddingBottomPx?: number | null;
+  headerTitleSubtitleGapPx?: number | null;
   logoUrl?: string | null;
   logoAlt?: string | null;
   logoSizePx?: number | null;
@@ -71,6 +74,9 @@ export function BrandLockup({
   headerTitle,
   headerSubtitle,
   headerTitleSizePx,
+  headerTextPaddingTopPx,
+  headerTextPaddingBottomPx,
+  headerTitleSubtitleGapPx,
   logoUrl,
   logoAlt,
   logoSizePx,
@@ -111,7 +117,13 @@ export function BrandLockup({
         />
       ) : null}
       {hasTitle || hasSubtitle ? (
-        <div className={`min-w-0 max-w-full ${isCentered ? "text-center" : ""}`.trim()}>
+        <div
+          className={`min-w-0 max-w-full ${isCentered ? "text-center" : ""}`.trim()}
+          style={{
+            paddingTop: `${Math.min(48, Math.max(0, headerTextPaddingTopPx ?? 0))}px`,
+            paddingBottom: `${Math.min(48, Math.max(0, headerTextPaddingBottomPx ?? 0))}px`,
+          }}
+        >
           {hasTitle ? (
             <div
               className="max-w-full font-bold leading-[1.08] text-[var(--wsu-gray)] text-pretty"
@@ -124,9 +136,12 @@ export function BrandLockup({
           ) : null}
           {hasSubtitle ? (
             <p
-              className={`max-w-full text-sm font-medium text-[var(--wsu-gray-mid)] text-pretty ${
-                hasTitle ? "mt-1" : ""
-              }`.trim()}
+              className="max-w-full text-sm font-medium text-[var(--wsu-gray-mid)] text-pretty"
+              style={{
+                marginTop: hasTitle
+                  ? `${Math.min(32, Math.max(0, headerTitleSubtitleGapPx ?? 4))}px`
+                  : undefined,
+              }}
             >
               {headerSubtitle}
             </p>

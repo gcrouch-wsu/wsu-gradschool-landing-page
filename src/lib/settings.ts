@@ -17,6 +17,11 @@ export type SiteSettingsCapabilities = {
   supportsHeaderTitleSize: boolean;
 };
 
+function readNumber(value: unknown, fallback: number | null | undefined): number {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : typeof fallback === "number" ? fallback : 0;
+}
+
 function normalizeSettingsRow(
   row: RawSettingsRow,
   capabilities: SiteSettingsCapabilities,
@@ -30,8 +35,37 @@ function normalizeSettingsRow(
     headerLayout: row.headerLayout ?? DEFAULT_SITE_SETTINGS.headerLayout,
     headerPlacement: row.headerPlacement ?? DEFAULT_SITE_SETTINGS.headerPlacement,
     headerTitleSizePx: capabilities.supportsHeaderTitleSize
-      ? Number(row.headerTitleSizePx ?? DEFAULT_SITE_SETTINGS.headerTitleSizePx)
+      ? readNumber(row.headerTitleSizePx, DEFAULT_SITE_SETTINGS.headerTitleSizePx)
       : DEFAULT_SITE_SETTINGS.headerTitleSizePx,
+    headerTextPaddingTopPx: readNumber(
+      row.headerTextPaddingTopPx,
+      DEFAULT_SITE_SETTINGS.headerTextPaddingTopPx,
+    ),
+    headerTextPaddingBottomPx: readNumber(
+      row.headerTextPaddingBottomPx,
+      DEFAULT_SITE_SETTINGS.headerTextPaddingBottomPx,
+    ),
+    headerTitleSubtitleGapPx: readNumber(
+      row.headerTitleSubtitleGapPx,
+      DEFAULT_SITE_SETTINGS.headerTitleSubtitleGapPx,
+    ),
+    colorCardBorder: row.colorCardBorder ?? DEFAULT_SITE_SETTINGS.colorCardBorder,
+    colorCardTitle: row.colorCardTitle ?? DEFAULT_SITE_SETTINGS.colorCardTitle,
+    colorCardDescription:
+      row.colorCardDescription ?? DEFAULT_SITE_SETTINGS.colorCardDescription,
+    cardFontFamily: row.cardFontFamily ?? DEFAULT_SITE_SETTINGS.cardFontFamily,
+    cardTitleSizePx: readNumber(row.cardTitleSizePx, DEFAULT_SITE_SETTINGS.cardTitleSizePx),
+    cardUrlSizePx: readNumber(row.cardUrlSizePx, DEFAULT_SITE_SETTINGS.cardUrlSizePx),
+    cardDescriptionSizePx: readNumber(
+      row.cardDescriptionSizePx,
+      DEFAULT_SITE_SETTINGS.cardDescriptionSizePx,
+    ),
+    cardPaddingPx: readNumber(row.cardPaddingPx, DEFAULT_SITE_SETTINGS.cardPaddingPx),
+    cardAccentHeightPx: readNumber(
+      row.cardAccentHeightPx,
+      DEFAULT_SITE_SETTINGS.cardAccentHeightPx,
+    ),
+    cardRadiusPx: readNumber(row.cardRadiusPx, DEFAULT_SITE_SETTINGS.cardRadiusPx),
     updatedAt:
       row.updatedAt instanceof Date
         ? row.updatedAt
@@ -87,12 +121,16 @@ async function querySiteSettings(): Promise<SiteSettingsRow | null> {
     const allExpected = [
       "logo_url", "logo_alt", "logo_size_px", "header_layout", "header_placement",
       "brand_line1", "brand_line2", "header_title", "header_subtitle",
-      "header_title_size_px", "hero_title", "hero_lede", "empty_state_text",
-      "manage_add_title", "manage_add_blurb", "manage_order_title",
-      "manage_order_blurb", "manage_empty_drag_text", "login_title",
-      "login_lede", "login_back_label", "color_primary", "color_primary_dark",
-      "color_text", "color_text_muted", "color_border", "color_page_bg",
-      "color_card_bg", "color_card_accent", "color_url_on_card",
+      "header_title_size_px", "header_text_padding_top_px",
+      "header_text_padding_bottom_px", "header_title_subtitle_gap_px", "hero_title",
+      "hero_lede", "empty_state_text", "manage_add_title", "manage_add_blurb",
+      "manage_order_title", "manage_order_blurb", "manage_empty_drag_text",
+      "login_title", "login_lede", "login_back_label", "color_primary",
+      "color_primary_dark", "color_text", "color_text_muted", "color_border",
+      "color_page_bg", "color_card_bg", "color_card_border", "color_card_accent",
+      "color_card_title", "color_card_description", "color_url_on_card",
+      "card_font_family", "card_title_size_px", "card_url_size_px",
+      "card_description_size_px", "card_padding_px", "card_accent_height_px",
       "card_radius_px", "card_shadow", "updated_at"
     ];
 

@@ -25,6 +25,8 @@ import {
   reorderAppsAction,
 } from "@/app/actions/apps";
 import { AppTile } from "@/components/AppTile";
+import { CardStyleForm } from "@/components/CardStyleForm";
+import { LiveSiteTheme } from "@/components/LiveSiteTheme";
 import {
   SiteHeaderBar,
   type HeaderDisplaySettings,
@@ -42,6 +44,9 @@ function pickHeaderDisplaySettings(settings: SiteSettingsRow): HeaderDisplaySett
     headerTitle: settings.headerTitle,
     headerSubtitle: settings.headerSubtitle,
     headerTitleSizePx: settings.headerTitleSizePx,
+    headerTextPaddingTopPx: settings.headerTextPaddingTopPx,
+    headerTextPaddingBottomPx: settings.headerTextPaddingBottomPx,
+    headerTitleSubtitleGapPx: settings.headerTitleSubtitleGapPx,
     logoUrl: settings.logoUrl,
     logoAlt: settings.logoAlt,
     logoSizePx: settings.logoSizePx,
@@ -63,10 +68,41 @@ const adminTabs: { id: AdminTab; label: string; description: string }[] = [
   },
   {
     id: "order",
-    label: "Card order",
-    description: "Reorder cards and remove old entries",
+    label: "Card order and styling",
+    description: "Reorder cards and tune the real card rendering",
   },
 ];
+
+const cardStyleFallbackApps: AppCard[] = [
+  {
+    id: "sample-1",
+    title: "Degree audit",
+    url: "https://example.wsu.edu/degree-audit",
+    description: "Track milestones, approvals, and completion status in one place.",
+    sortOrder: 0,
+    createdAt: new Date(0),
+  },
+  {
+    id: "sample-2",
+    title: "Funding dashboard",
+    url: "https://example.wsu.edu/funding",
+    description: "Review assistantships, tuition coverage, and appointment details.",
+    sortOrder: 1,
+    createdAt: new Date(0),
+  },
+  {
+    id: "sample-3",
+    title: "Forms hub",
+    url: "https://example.wsu.edu/forms",
+    description: "Open common graduate school forms and supporting instructions quickly.",
+    sortOrder: 2,
+    createdAt: new Date(0),
+  },
+];
+
+function previewAppsForStyling(items: AppCard[]): AppCard[] {
+  return items.length > 0 ? items.slice(0, 3) : cardStyleFallbackApps;
+}
 
 function SortableRow({
   app,
@@ -163,9 +199,7 @@ export function ManageBoard({
   const [formPending, setFormPending] = useState(false);
   const [listPending, startListTransition] = useTransition();
   const [removingId, setRemovingId] = useState<string | null>(null);
-  const [liveHeaderSettings, setLiveHeaderSettings] = useState<HeaderDisplaySettings>(() =>
-    pickHeaderDisplaySettings(settings),
-  );
+  const [liveSettings, setLiveSettings] = useState<SiteSettingsRow>(settings);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
@@ -173,23 +207,6 @@ export function ManageBoard({
   );
 
   const ids = useMemo(() => items.map((app) => app.id), [items]);
-  const settingsSignature = useMemo(
-    () =>
-      [
-        settings.logoUrl ?? "",
-        settings.logoAlt ?? "",
-        settings.logoSizePx ?? "",
-        settings.headerLayout ?? "",
-        settings.headerPlacement ?? "",
-        settings.brandLine1 ?? "",
-        settings.brandLine2 ?? "",
-        settings.headerTitle ?? "",
-        settings.headerSubtitle ?? "",
-        settings.headerTitleSizePx ?? "",
-        settings.updatedAt?.valueOf() ?? "",
-      ].join("|"),
-    [settings],
-  );
   const headerActions: SiteHeaderAction[] = useMemo(
     () => [
       { kind: "link", href: "/", label: "View directory", tone: "secondary" },
@@ -197,6 +214,11 @@ export function ManageBoard({
     ],
     [],
   );
+  const previewApps = useMemo(() => previewAppsForStyling(items), [items]);
+  const orderPanelTitle =
+    settings.manageOrderTitle === "Card order"
+      ? "Card order and styling"
+      : settings.manageOrderTitle;
 
   const syncFromServer = useCallback(() => {
     router.refresh();
@@ -257,12 +279,16 @@ export function ManageBoard({
   }, [dataSignature, initialApps]);
 
   useEffect(() => {
-    setLiveHeaderSettings(pickHeaderDisplaySettings(settings));
-  }, [settingsSignature, settings]);
+    setLiveSettings(settings);
+  }, [settings]);
 
   return (
     <>
-      <SiteHeaderBar settings={liveHeaderSettings} actions={headerActions} />
+      <LiveSiteTheme settings={liveSettings} />
+      <SiteHeaderBar
+        settings={pickHeaderDisplaySettings(liveSettings)}
+        actions={headerActions}
+      />
       <div className="mx-auto max-w-4xl px-4 py-8">
         <div className="mb-8 rounded-[20px] bg-[var(--wsu-bg)]/90 p-2 ring-1 ring-black/5">
           <div role="tablist" aria-label="Admin sections" className="grid gap-2 sm:grid-cols-3">
@@ -290,7 +316,9 @@ export function ManageBoard({
             key={settings.updatedAt?.valueOf() ?? "defaults"}
             settings={settings}
             supportsLogoStorage={supportsLogoStorage}
-            onHeaderSettingsChange={setLiveHeaderSettings}
+            onHeaderSettingsChange={(nextSettings) =>
+              setLiveSettings((prev) => ({ ...prev, ...nextSettings }))
+            }
           />
         </section>
 
@@ -393,11 +421,39 @@ export function ManageBoard({
           className={activeTab === "order" ? "block" : "hidden"}
         >
           <div className="rounded-[18px] bg-white p-6 shadow-[0_10px_28px_rgba(0,0,0,0.06)] ring-1 ring-black/5">
+            <div className="mb-6 grid gap-6 xl:grid-cols-[minmax(0,0.95fr)_minmax(0,1.25fr)]">
+              <CardStyleForm
+                key={`card-style-${settings.updatedAt?.valueOf() ?? "defaults"}`}
+                settings={settings}
+                onCardSettingsChange={(nextSettings) =>
+                  setLiveSettings((prev) => ({ ...prev, ...nextSettings }))
+                }
+              />
+
+              <section className="rounded-[18px] border border-[var(--wsu-gray-light)] bg-[var(--wsu-bg)]/65 p-6 ring-1 ring-black/5">
+                <div className="max-w-2xl">
+                  <h3 className="text-lg font-bold text-[var(--wsu-gray)]">
+                    Live public card rendering
+                  </h3>
+                  <p className="mt-1 text-sm leading-6 text-[var(--wsu-gray-mid)]">
+                    This uses the same `AppTile` component as the public landing page, including
+                    the linked card footer.
+                  </p>
+                </div>
+
+                <div className="mt-6 grid gap-5 md:grid-cols-2">
+                  {previewApps.map((app) => (
+                    <AppTile key={`preview-${app.id}`} app={app} href={app.url} />
+                  ))}
+                </div>
+              </section>
+            </div>
+
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
-                {settings.manageOrderTitle ? (
+                {orderPanelTitle ? (
                   <h2 className="mb-2 text-xl font-bold text-[var(--wsu-gray)]">
-                    {settings.manageOrderTitle}
+                    {orderPanelTitle}
                   </h2>
                 ) : null}
                 {settings.manageOrderBlurb ? (

@@ -1,7 +1,8 @@
+"use client";
+
 import type { SiteSettingsRow } from "@/lib/schema";
 import { buildSiteThemeCss } from "@/lib/site-theme-css";
 
-/** Injects CSS variables from saved site settings (colors, card radius, shadow). */
-export function SiteTheme({ settings }: { settings: SiteSettingsRow }) {
+export function LiveSiteTheme({ settings }: { settings: SiteSettingsRow }) {
   return <style dangerouslySetInnerHTML={{ __html: buildSiteThemeCss(settings) }} />;
 }
