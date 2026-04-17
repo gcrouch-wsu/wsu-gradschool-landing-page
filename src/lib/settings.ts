@@ -71,7 +71,7 @@ export async function siteSettingsSupportHeaderTitleSizeColumn(): Promise<boolea
   return (await getSiteSettingsCapabilities()).supportsHeaderTitleSize;
 }
 
-async function querySiteSettings(capabilities: SiteSettingsCapabilities): Promise<SiteSettingsRow | null> {
+async function querySiteSettings(): Promise<SiteSettingsRow | null> {
   const db = getDb();
   
   try {
@@ -80,7 +80,7 @@ async function querySiteSettings(capabilities: SiteSettingsCapabilities): Promis
       from information_schema.columns
       where table_name = 'site_settings'
     `);
-    const cols = new Set((capsResult.rows as any[]).map((r) => String(r.column_name)));
+    const cols = new Set((capsResult.rows as ColumnRow[]).map((r) => String(r.column_name)));
     
     const selectFields: string[] = ["id"];
     const allExpected = [
@@ -122,15 +122,11 @@ async function querySiteSettings(capabilities: SiteSettingsCapabilities): Promis
 
 export const getSiteSettings = cache(async (): Promise<SiteSettingsRow> => {
   try {
-    const capabilities = await getSiteSettingsCapabilities();
-    const settings = await querySiteSettings(capabilities);
+    const settings = await querySiteSettings();
     if (settings) return settings;
   } catch {
     try {
-      const settings = await querySiteSettings({
-        supportsLogoStorage: false,
-        supportsHeaderTitleSize: false,
-      });
+      const settings = await querySiteSettings();
       if (settings) return settings;
     } catch {
       /* table missing or DB down */

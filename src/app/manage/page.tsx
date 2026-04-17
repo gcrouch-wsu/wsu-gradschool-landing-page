@@ -35,7 +35,6 @@ export default async function ManagePage() {
         initialApps={apps}
         settings={settings}
         supportsLogoStorage={supportsLogoStorage}
-        supportsHeaderTitleSize={supportsHeaderTitleSize}
       />
     </>
   );

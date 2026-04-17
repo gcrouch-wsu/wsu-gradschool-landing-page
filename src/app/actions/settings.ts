@@ -7,7 +7,6 @@ import { z } from "zod";
 import { getDb } from "@/lib/db";
 import {
   DEFAULT_SITE_SETTINGS,
-  getSiteSettingsCapabilities,
 } from "@/lib/settings";
 import { SESSION_COOKIE, verifySessionToken } from "@/lib/session";
 
@@ -166,10 +165,10 @@ async function saveSettings(settings: NormalizedSettings, caps: Capabilities) {
   
   // Build columns and values dynamically to avoid "column does not exist" errors
   const columns: string[] = ["id"];
-  const values: any[] = [1];
+  const values: unknown[] = [1];
   const updates: string[] = [];
 
-  const add = (col: string, val: any) => {
+  const add = (col: string, val: unknown) => {
     columns.push(`"${col}"`);
     values.push(val);
     updates.push(`"${col}" = excluded."${col}"`);
@@ -225,6 +224,10 @@ async function saveSettings(settings: NormalizedSettings, caps: Capabilities) {
   await db.execute(sqlQuery, values);
 }
 
+interface ColumnRow {
+  column_name: string;
+}
+
 export async function updateSiteSettingsAction(formData: FormData) {
   await requireSession();
   // ... (rest of parsing logic)
@@ -277,7 +280,7 @@ export async function updateSiteSettingsAction(formData: FormData) {
       from information_schema.columns
       where table_name = 'site_settings'
     `);
-    const existingColumns = new Set((capsResult.rows as any[]).map((r) => String(r.column_name)));
+    const existingColumns = new Set((capsResult.rows as ColumnRow[]).map((r) => String(r.column_name)));
     
     const caps: Capabilities = {
       supportsLogoStorage: existingColumns.has("logo_url") && existingColumns.has("logo_alt"),

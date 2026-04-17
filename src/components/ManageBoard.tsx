@@ -130,12 +130,10 @@ export function ManageBoard({
   initialApps,
   settings,
   supportsLogoStorage,
-  supportsHeaderTitleSize,
 }: {
   initialApps: AppCard[];
   settings: SiteSettingsRow;
   supportsLogoStorage: boolean;
-  supportsHeaderTitleSize: boolean;
 }) {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<AdminTab>("appearance");
@@ -239,7 +237,6 @@ export function ManageBoard({
           key={settings.updatedAt?.valueOf() ?? "defaults"}
           settings={settings}
           supportsLogoStorage={supportsLogoStorage}
-          supportsHeaderTitleSize={supportsHeaderTitleSize}
         />
       </section>
 

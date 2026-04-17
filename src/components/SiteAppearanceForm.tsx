@@ -10,22 +10,7 @@ import { DEFAULT_SITE_SETTINGS } from "@/lib/site-defaults";
 type Props = {
   settings: SiteSettingsRow;
   supportsLogoStorage: boolean;
-  supportsHeaderTitleSize: boolean;
 };
-
-function blankIfDefault(value: string | number | null | undefined, fallback: string | number): string {
-  if (value === null || value === undefined) return "";
-  return String(value) === String(fallback) ? "" : String(value);
-}
-
-function previewValue(
-  value: string,
-  touched: boolean | undefined,
-  savedValue: string | null | undefined,
-): string {
-  if (!touched) return String(savedValue ?? "");
-  return value.trim();
-}
 
 const WSU_COLORS = [
   { name: "Crimson", hex: "#981e32" },
@@ -86,12 +71,10 @@ function ColorPicker({
 export function SiteAppearanceForm({
   settings,
   supportsLogoStorage,
-  supportsHeaderTitleSize,
 }: Props) {
   const router = useRouter();
   const [pending, setPending] = useState(false);
   const [banner, setBanner] = useState<string | null>(null);
-  const [touchedFields, setTouchedFields] = useState<Record<string, boolean>>({});
 
   const [formValues, setFormValues] = useState({
     logoUrl: settings.logoUrl ?? "",
@@ -128,7 +111,6 @@ export function SiteAppearanceForm({
   });
 
   function handleFieldChange(name: string, value: string) {
-    setTouchedFields((prev) => ({ ...prev, [name]: true }));
     setFormValues((prev) => ({ ...prev, [name]: value }));
   }
 
