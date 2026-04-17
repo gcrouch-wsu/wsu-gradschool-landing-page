@@ -4,6 +4,7 @@ import { cookies } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { SESSION_COOKIE, verifySessionToken } from "@/lib/session";
+import { APP_CARD_DESCRIPTION_MAX } from "@/lib/app-card-limits";
 import {
   deleteApp,
   getMaxSortOrder,
@@ -32,7 +33,7 @@ const appInput = z.object({
   description: z
     .string()
     .trim()
-    .max(2000)
+    .max(APP_CARD_DESCRIPTION_MAX, `Keep the description under ${APP_CARD_DESCRIPTION_MAX} characters`)
     .optional()
     .transform((s) => (s === "" ? undefined : s)),
 });

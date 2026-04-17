@@ -1,0 +1,1 @@
+export const APP_CARD_DESCRIPTION_MAX = 320;

@@ -20,6 +20,8 @@ const cardFontFamilyValues = [
   "space-grotesk",
   "source-serif-4",
 ] as const;
+const cardActionFontFamilyValues = ["match-card", ...cardFontFamilyValues] as const;
+const cardActionFontWeightValues = ["500", "600", "700", "800"] as const;
 
 const textOrBlank = (max: number) =>
   z.string().trim().max(max, `Keep this under ${max} characters`);
@@ -83,6 +85,22 @@ const cardFontFamilyOrBlank = z.preprocess(
   z.enum(cardFontFamilyValues).optional(),
 );
 
+const cardActionFontFamilyOrBlank = z.preprocess(
+  (value) => {
+    const text = String(value ?? "").trim();
+    return text === "" ? undefined : text;
+  },
+  z.enum(cardActionFontFamilyValues).optional(),
+);
+
+const cardActionFontWeightOrBlank = z.preprocess(
+  (value) => {
+    const text = String(value ?? "").trim();
+    return text === "" ? undefined : text;
+  },
+  z.enum(cardActionFontWeightValues).optional(),
+);
+
 const settingsSchema = z.object({
   logoUrl: logoUrlOrBlank,
   logoAlt: textOrBlank(160),
@@ -123,6 +141,8 @@ const settingsSchema = z.object({
   colorCardDescription: hexOrBlank,
   colorUrlOnCard: hexOrBlank,
   cardFontFamily: cardFontFamilyOrBlank,
+  cardActionFontFamily: cardActionFontFamilyOrBlank,
+  cardActionFontWeight: cardActionFontWeightOrBlank,
   cardTitleSizePx: numberOrBlank(14, 32),
   cardUrlSizePx: numberOrBlank(10, 24),
   cardDescriptionSizePx: numberOrBlank(12, 28),
@@ -204,6 +224,10 @@ function buildNormalizedSettings(v: z.infer<typeof settingsSchema>) {
     ),
     colorUrlOnCard: fallbackText(v.colorUrlOnCard, DEFAULT_SITE_SETTINGS.colorUrlOnCard),
     cardFontFamily: v.cardFontFamily ?? DEFAULT_SITE_SETTINGS.cardFontFamily,
+    cardActionFontFamily:
+      v.cardActionFontFamily ?? DEFAULT_SITE_SETTINGS.cardActionFontFamily,
+    cardActionFontWeight:
+      v.cardActionFontWeight ?? DEFAULT_SITE_SETTINGS.cardActionFontWeight,
     cardTitleSizePx: v.cardTitleSizePx ?? DEFAULT_SITE_SETTINGS.cardTitleSizePx,
     cardUrlSizePx: v.cardUrlSizePx ?? DEFAULT_SITE_SETTINGS.cardUrlSizePx,
     cardDescriptionSizePx:
@@ -231,6 +255,7 @@ type Capabilities = {
   supportsHeaderPlacement: boolean;
   supportsHeaderSpacing: boolean;
   supportsAdvancedCardStyling: boolean;
+  supportsActionLabelTypography: boolean;
 };
 
 async function saveSettings(settings: NormalizedSettings, caps: Capabilities) {
@@ -305,6 +330,10 @@ async function saveSettings(settings: NormalizedSettings, caps: Capabilities) {
     add("card_description_size_px", settings.cardDescriptionSizePx);
     add("card_padding_px", settings.cardPaddingPx);
     add("card_accent_height_px", settings.cardAccentHeightPx);
+  }
+  if (caps.supportsActionLabelTypography) {
+    add("card_action_font_family", settings.cardActionFontFamily);
+    add("card_action_font_weight", settings.cardActionFontWeight);
   }
   add("card_radius_px", settings.cardRadiusPx);
   add("card_shadow", settings.cardShadow);
@@ -457,6 +486,16 @@ export async function updateSiteSettingsAction(formData: FormData) {
       "cardFontFamily",
       currentSettings.cardFontFamily,
     ),
+    cardActionFontFamily: readMergedValue(
+      formData,
+      "cardActionFontFamily",
+      currentSettings.cardActionFontFamily,
+    ),
+    cardActionFontWeight: readMergedValue(
+      formData,
+      "cardActionFontWeight",
+      currentSettings.cardActionFontWeight,
+    ),
     cardTitleSizePx: readMergedValue(
       formData,
       "cardTitleSizePx",
@@ -514,6 +553,9 @@ export async function updateSiteSettingsAction(formData: FormData) {
         existingColumns.has("card_description_size_px") &&
         existingColumns.has("card_padding_px") &&
         existingColumns.has("card_accent_height_px"),
+      supportsActionLabelTypography:
+        existingColumns.has("card_action_font_family") &&
+        existingColumns.has("card_action_font_weight"),
     };
 
     await saveSettings(normalized, caps);
@@ -567,6 +609,17 @@ export async function updateSiteSettingsAction(formData: FormData) {
     ) {
       fieldErrors.cardFontFamily = [
         "Advanced card styling is not available in the database yet. Other settings were saved.",
+      ];
+    }
+    if (
+      !caps.supportsActionLabelTypography &&
+      (
+        normalized.cardActionFontFamily !== DEFAULT_SITE_SETTINGS.cardActionFontFamily ||
+        normalized.cardActionFontWeight !== DEFAULT_SITE_SETTINGS.cardActionFontWeight
+      )
+    ) {
+      fieldErrors.cardActionFontFamily = [
+        "Action label typography is not available in the database yet. Other settings were saved.",
       ];
     }
 

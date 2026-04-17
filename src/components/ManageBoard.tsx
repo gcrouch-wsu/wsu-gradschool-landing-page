@@ -34,6 +34,7 @@ import {
   type SiteHeaderAction,
 } from "@/components/SiteHeaderBar";
 import { SiteAppearanceForm } from "@/components/SiteAppearanceForm";
+import { APP_CARD_DESCRIPTION_MAX } from "@/lib/app-card-limits";
 import type { AppCard, SiteSettingsRow } from "@/lib/schema";
 
 type AdminTab = "appearance" | "add" | "order";
@@ -224,6 +225,7 @@ export function ManageBoard({
   const [formError, setFormError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string[] | undefined>>({});
   const [formPending, setFormPending] = useState(false);
+  const [addDescriptionLength, setAddDescriptionLength] = useState(0);
   const [listPending, startListTransition] = useTransition();
   const [removingId, setRemovingId] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -314,6 +316,7 @@ export function ManageBoard({
       syncFromServer();
       const form = document.getElementById("add-app-form") as HTMLFormElement | null;
       form?.reset();
+      setAddDescriptionLength(0);
     } finally {
       setFormPending(false);
     }
@@ -525,9 +528,15 @@ export function ManageBoard({
                   id="description"
                   name="description"
                   rows={3}
+                  maxLength={APP_CARD_DESCRIPTION_MAX}
+                  onChange={(e) => setAddDescriptionLength(e.target.value.length)}
                   className="w-full resize-y rounded-lg border border-[var(--wsu-gray-light)] px-3 py-2 text-sm outline-none ring-[var(--wsu-crimson)] focus:ring-2"
                   placeholder="Short blurb shown on the card"
                 />
+                <p className="mt-1 text-xs text-[var(--wsu-gray-mid)]">
+                  {addDescriptionLength}/{APP_CARD_DESCRIPTION_MAX} characters. Cards show about
+                  six lines before the action label.
+                </p>
                 {fieldErrors.description?.length ? (
                   <p className="mt-1 text-xs text-red-600">{fieldErrors.description[0]}</p>
                 ) : null}
@@ -709,12 +718,17 @@ export function ManageBoard({
                       id="edit-description"
                       name="description"
                       rows={4}
+                      maxLength={APP_CARD_DESCRIPTION_MAX}
                       value={editValues.description}
                       onChange={(e) =>
                         setEditValues((prev) => ({ ...prev, description: e.target.value }))
                       }
                       className="w-full resize-y rounded-lg border border-[var(--wsu-gray-light)] px-3 py-2 text-sm outline-none ring-[var(--wsu-crimson)] focus:ring-2"
                     />
+                    <p className="mt-1 text-xs text-[var(--wsu-gray-mid)]">
+                      {editValues.description.length}/{APP_CARD_DESCRIPTION_MAX} characters. Cards
+                      show about six lines before the action label.
+                    </p>
                     {editFieldErrors.description?.length ? (
                       <p className="mt-1 text-xs text-red-600">
                         {editFieldErrors.description[0]}

@@ -44,6 +44,8 @@ export const DEFAULT_SITE_SETTINGS: SiteSettingsRow = {
   colorCardDescription: "#5e6a71",
   colorUrlOnCard: "#981e32",
   cardFontFamily: "montserrat",
+  cardActionFontFamily: "match-card",
+  cardActionFontWeight: "700",
   cardTitleSizePx: 16,
   cardUrlSizePx: 12,
   cardDescriptionSizePx: 14,

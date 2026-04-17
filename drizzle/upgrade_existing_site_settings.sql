@@ -58,6 +58,12 @@ ALTER TABLE "site_settings"
 ADD COLUMN IF NOT EXISTS "card_font_family" text;
 
 ALTER TABLE "site_settings"
+ADD COLUMN IF NOT EXISTS "card_action_font_family" text;
+
+ALTER TABLE "site_settings"
+ADD COLUMN IF NOT EXISTS "card_action_font_weight" text;
+
+ALTER TABLE "site_settings"
 ADD COLUMN IF NOT EXISTS "card_title_size_px" integer;
 
 ALTER TABLE "site_settings"
@@ -157,6 +163,8 @@ INSERT INTO "site_settings" (
   "color_card_description",
   "color_url_on_card",
   "card_font_family",
+  "card_action_font_family",
+  "card_action_font_weight",
   "card_title_size_px",
   "card_url_size_px",
   "card_description_size_px",
@@ -204,6 +212,8 @@ INSERT INTO "site_settings" (
   '#5e6a71',
   '#981e32',
   'montserrat',
+  'match-card',
+  '700',
   16,
   12,
   14,
@@ -265,6 +275,14 @@ WHERE "color_card_description" IS NULL;
 UPDATE "site_settings"
 SET "card_font_family" = 'montserrat'
 WHERE "card_font_family" IS NULL;
+
+UPDATE "site_settings"
+SET "card_action_font_family" = 'match-card'
+WHERE "card_action_font_family" IS NULL;
+
+UPDATE "site_settings"
+SET "card_action_font_weight" = '700'
+WHERE "card_action_font_weight" IS NULL;
 
 UPDATE "site_settings"
 SET "card_title_size_px" = 16
@@ -381,6 +399,18 @@ ALTER COLUMN "card_font_family" SET DEFAULT 'montserrat';
 
 ALTER TABLE "site_settings"
 ALTER COLUMN "card_font_family" SET NOT NULL;
+
+ALTER TABLE "site_settings"
+ALTER COLUMN "card_action_font_family" SET DEFAULT 'match-card';
+
+ALTER TABLE "site_settings"
+ALTER COLUMN "card_action_font_family" SET NOT NULL;
+
+ALTER TABLE "site_settings"
+ALTER COLUMN "card_action_font_weight" SET DEFAULT '700';
+
+ALTER TABLE "site_settings"
+ALTER COLUMN "card_action_font_weight" SET NOT NULL;
 
 ALTER TABLE "site_settings"
 ALTER COLUMN "card_title_size_px" SET DEFAULT 16;

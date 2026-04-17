@@ -16,6 +16,8 @@ export type ThemeSettings = Pick<
   | "colorCardDescription"
   | "colorUrlOnCard"
   | "cardFontFamily"
+  | "cardActionFontFamily"
+  | "cardActionFontWeight"
   | "cardTitleSizePx"
   | "cardUrlSizePx"
   | "cardDescriptionSizePx"
@@ -47,6 +49,13 @@ export function resolveCardFontFamily(key: string): string {
   return cardFontFamilies[key as keyof typeof cardFontFamilies] ?? cardFontFamilies.montserrat;
 }
 
+function resolveActionLabelFontFamily(actionKey: string, cardKey: string): string {
+  if (actionKey === "match-card") {
+    return resolveCardFontFamily(cardKey);
+  }
+  return resolveCardFontFamily(actionKey);
+}
+
 export function buildSiteThemeCss(settings: ThemeSettings): string {
   const radius = clamp(settings.cardRadiusPx, 4, 32);
   const titleSize = clamp(settings.cardTitleSizePx, 14, 32);
@@ -70,6 +79,11 @@ export function buildSiteThemeCss(settings: ThemeSettings): string {
   --wsu-card-description: ${settings.colorCardDescription};
   --wsu-url-on-card: ${settings.colorUrlOnCard};
   --wsu-card-font-family: ${resolveCardFontFamily(settings.cardFontFamily)};
+  --wsu-card-action-font-family: ${resolveActionLabelFontFamily(
+    settings.cardActionFontFamily,
+    settings.cardFontFamily,
+  )};
+  --wsu-card-action-font-weight: ${settings.cardActionFontWeight};
   --wsu-card-title-size: ${titleSize}px;
   --wsu-card-url-size: ${urlSize}px;
   --wsu-card-description-size: ${descriptionSize}px;

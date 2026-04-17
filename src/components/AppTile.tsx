@@ -32,7 +32,7 @@ export function AppTile({ app, href, className = "" }: TileProps) {
         </div>
         {app.description ? (
           <p
-            className="mt-3 overflow-hidden leading-6 text-[var(--wsu-card-description)] [display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:4]"
+            className="mt-3 overflow-hidden leading-6 text-[var(--wsu-card-description)] [display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:6]"
             style={{ fontSize: "var(--wsu-card-description-size,14px)" }}
           >
             {app.description}
@@ -40,8 +40,12 @@ export function AppTile({ app, href, className = "" }: TileProps) {
         ) : null}
         {href ? (
           <div
-            className="mt-auto pt-5 font-semibold text-[var(--wsu-url-on-card)] transition group-hover:text-[var(--wsu-crimson-dark)]"
-            style={{ fontSize: "var(--wsu-card-url-size,12px)" }}
+            className="mt-4 text-[var(--wsu-url-on-card)] transition group-hover:text-[var(--wsu-crimson-dark)]"
+            style={{
+              fontFamily: "var(--wsu-card-action-font-family,var(--wsu-card-font-family))",
+              fontSize: "var(--wsu-card-url-size,12px)",
+              fontWeight: "var(--wsu-card-action-font-weight,700)",
+            }}
           >
             {app.actionLabel?.trim() || "Open tool"}
           </div>
@@ -50,7 +54,7 @@ export function AppTile({ app, href, className = "" }: TileProps) {
     </>
   );
 
-  const shell = `group flex h-full ${href ? "min-h-[15rem]" : "min-h-[11rem]"} flex-col overflow-hidden rounded-[length:var(--wsu-card-radius,10px)] border bg-[var(--wsu-card-bg,#fff)] transition duration-200 hover:-translate-y-0.5 hover:opacity-[0.99] ${className}`;
+  const shell = `group flex h-full ${href ? "min-h-[14rem]" : "min-h-[10.5rem]"} flex-col overflow-hidden rounded-[length:var(--wsu-card-radius,10px)] border bg-[var(--wsu-card-bg,#fff)] transition duration-200 hover:-translate-y-0.5 hover:opacity-[0.99] ${className}`;
 
   const shellStyle = {
     boxShadow: "var(--wsu-card-shadow,0 4px 14px rgba(0,0,0,0.08))",

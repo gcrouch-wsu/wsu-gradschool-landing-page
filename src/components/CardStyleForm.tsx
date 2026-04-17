@@ -16,6 +16,8 @@ type CardStyleSettings = Pick<
   | "colorCardDescription"
   | "colorUrlOnCard"
   | "cardFontFamily"
+  | "cardActionFontFamily"
+  | "cardActionFontWeight"
   | "cardTitleSizePx"
   | "cardUrlSizePx"
   | "cardDescriptionSizePx"
@@ -61,6 +63,22 @@ const cardFontChoices = [
     label: "Source Serif 4",
     description: "Editorial with more contrast.",
   },
+] as const;
+
+const actionLabelFontChoices = [
+  {
+    value: "match-card",
+    label: "Match card font",
+    description: "Use the same family as the rest of the card.",
+  },
+  ...cardFontChoices,
+] as const;
+
+const actionLabelWeightChoices = [
+  { value: "500", label: "Medium" },
+  { value: "600", label: "Semibold" },
+  { value: "700", label: "Bold" },
+  { value: "800", label: "Extra bold" },
 ] as const;
 
 function ColorPicker({
@@ -166,6 +184,10 @@ export function CardStyleForm({ settings, onCardSettingsChange }: Props) {
       settings.colorCardDescription ?? DEFAULT_SITE_SETTINGS.colorCardDescription,
     colorUrlOnCard: settings.colorUrlOnCard ?? DEFAULT_SITE_SETTINGS.colorUrlOnCard,
     cardFontFamily: settings.cardFontFamily ?? DEFAULT_SITE_SETTINGS.cardFontFamily,
+    cardActionFontFamily:
+      settings.cardActionFontFamily ?? DEFAULT_SITE_SETTINGS.cardActionFontFamily,
+    cardActionFontWeight:
+      settings.cardActionFontWeight ?? DEFAULT_SITE_SETTINGS.cardActionFontWeight,
     cardTitleSizePx: String(settings.cardTitleSizePx ?? DEFAULT_SITE_SETTINGS.cardTitleSizePx),
     cardUrlSizePx: String(settings.cardUrlSizePx ?? DEFAULT_SITE_SETTINGS.cardUrlSizePx),
     cardDescriptionSizePx: String(
@@ -191,6 +213,12 @@ export function CardStyleForm({ settings, onCardSettingsChange }: Props) {
       cardFontFamily:
         (values.cardFontFamily as SiteSettingsRow["cardFontFamily"]) ??
         DEFAULT_SITE_SETTINGS.cardFontFamily,
+      cardActionFontFamily:
+        (values.cardActionFontFamily as SiteSettingsRow["cardActionFontFamily"]) ??
+        DEFAULT_SITE_SETTINGS.cardActionFontFamily,
+      cardActionFontWeight:
+        (values.cardActionFontWeight as SiteSettingsRow["cardActionFontWeight"]) ??
+        DEFAULT_SITE_SETTINGS.cardActionFontWeight,
       cardTitleSizePx:
         values.cardTitleSizePx.trim() === ""
           ? DEFAULT_SITE_SETTINGS.cardTitleSizePx
@@ -303,7 +331,34 @@ export function CardStyleForm({ settings, onCardSettingsChange }: Props) {
             </div>
           </div>
 
-          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+          <div className="space-y-3">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wide text-[var(--wsu-gray-mid)]">
+                Action label font family
+              </p>
+              <p className="mt-1 text-sm leading-6 text-[var(--wsu-gray-mid)]">
+                Style the `Open tool` link independently from the rest of the card.
+              </p>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2">
+              {actionLabelFontChoices.map((choice) => (
+                <ChoiceTile
+                  key={choice.value}
+                  name="cardActionFontFamily"
+                  value={choice.value}
+                  selectedValue={formValues.cardActionFontFamily}
+                  label={choice.label}
+                  description={choice.description}
+                  previewFontFamily={resolveCardFontFamily(
+                    choice.value === "match-card" ? formValues.cardFontFamily : choice.value,
+                  )}
+                  onChange={(value) => handleFieldChange("cardActionFontFamily", value)}
+                />
+              ))}
+            </div>
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
             <label className="block text-xs font-semibold uppercase tracking-wide text-[var(--wsu-gray-mid)]">
               Title size (px)
               <input
@@ -327,6 +382,21 @@ export function CardStyleForm({ settings, onCardSettingsChange }: Props) {
                 onChange={(e) => handleFieldChange("cardUrlSizePx", e.target.value)}
                 className="mt-1 w-full rounded-xl border border-[var(--wsu-gray-light)] px-3 py-2.5 text-sm"
               />
+            </label>
+            <label className="block text-xs font-semibold uppercase tracking-wide text-[var(--wsu-gray-mid)]">
+              Action label weight
+              <select
+                name="cardActionFontWeight"
+                value={formValues.cardActionFontWeight}
+                onChange={(e) => handleFieldChange("cardActionFontWeight", e.target.value)}
+                className="mt-1 w-full rounded-xl border border-[var(--wsu-gray-light)] px-3 py-2.5 text-sm"
+              >
+                {actionLabelWeightChoices.map((choice) => (
+                  <option key={choice.value} value={choice.value}>
+                    {choice.label}
+                  </option>
+                ))}
+              </select>
             </label>
             <label className="block text-xs font-semibold uppercase tracking-wide text-[var(--wsu-gray-mid)]">
               Description size (px)

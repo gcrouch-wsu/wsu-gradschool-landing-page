@@ -62,6 +62,10 @@ function normalizeSettingsRow(
     colorCardDescription:
       row.colorCardDescription ?? DEFAULT_SITE_SETTINGS.colorCardDescription,
     cardFontFamily: row.cardFontFamily ?? DEFAULT_SITE_SETTINGS.cardFontFamily,
+    cardActionFontFamily:
+      row.cardActionFontFamily ?? DEFAULT_SITE_SETTINGS.cardActionFontFamily,
+    cardActionFontWeight:
+      row.cardActionFontWeight ?? DEFAULT_SITE_SETTINGS.cardActionFontWeight,
     cardTitleSizePx: readNumber(row.cardTitleSizePx, DEFAULT_SITE_SETTINGS.cardTitleSizePx),
     cardUrlSizePx: readNumber(row.cardUrlSizePx, DEFAULT_SITE_SETTINGS.cardUrlSizePx),
     cardDescriptionSizePx: readNumber(
@@ -138,7 +142,8 @@ async function querySiteSettings(): Promise<SiteSettingsRow | null> {
       "color_primary_dark", "color_text", "color_text_muted", "color_border",
       "color_page_bg", "color_card_bg", "color_card_border", "color_card_accent",
       "color_card_title", "color_card_description", "color_url_on_card",
-      "card_font_family", "card_title_size_px", "card_url_size_px",
+      "card_font_family", "card_action_font_family", "card_action_font_weight",
+      "card_title_size_px", "card_url_size_px",
       "card_description_size_px", "card_padding_px", "card_accent_height_px",
       "card_radius_px", "card_shadow", "updated_at"
     ];

@@ -62,6 +62,8 @@ export const siteSettings = pgTable("site_settings", {
   colorCardDescription: text("color_card_description").notNull().default("#5e6a71"),
   colorUrlOnCard: text("color_url_on_card").notNull().default("#981e32"),
   cardFontFamily: text("card_font_family").notNull().default("montserrat"),
+  cardActionFontFamily: text("card_action_font_family").notNull().default("match-card"),
+  cardActionFontWeight: text("card_action_font_weight").notNull().default("700"),
   cardTitleSizePx: integer("card_title_size_px").notNull().default(16),
   cardUrlSizePx: integer("card_url_size_px").notNull().default(12),
   cardDescriptionSizePx: integer("card_description_size_px").notNull().default(14),
