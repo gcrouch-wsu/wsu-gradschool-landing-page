@@ -4,7 +4,6 @@ import { SiteHeader } from "@/components/SiteHeader";
 import { listAppsOrdered } from "@/lib/apps";
 import {
   getSiteSettings,
-  siteSettingsSupportHeaderTitleSizeColumn,
   siteSettingsSupportLogoColumns,
 } from "@/lib/settings";
 
@@ -13,7 +12,6 @@ export const dynamic = "force-dynamic";
 export default async function ManagePage() {
   const settings = await getSiteSettings();
   const supportsLogoStorage = await siteSettingsSupportLogoColumns();
-  const supportsHeaderTitleSize = await siteSettingsSupportHeaderTitleSizeColumn();
 
   let apps;
   try {

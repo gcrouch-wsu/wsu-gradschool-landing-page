@@ -6,7 +6,7 @@ import { DEFAULT_SITE_SETTINGS } from "./site-defaults";
 
 export { DEFAULT_SITE_SETTINGS } from "./site-defaults";
 
-type ColumnRow = {
+type ColumnRow = Record<string, unknown> & {
   column_name: string;
 };
 
@@ -43,14 +43,14 @@ function normalizeSettingsRow(
 export async function getSiteSettingsCapabilities(): Promise<SiteSettingsCapabilities> {
   try {
     const db = getDb();
-    const result = await db.execute(sql`
+    const result = await db.execute<ColumnRow>(sql`
       select column_name
       from information_schema.columns
       where table_name = 'site_settings'
         and column_name in ('logo_url', 'logo_alt', 'header_title_size_px')
     `);
 
-    const names = new Set((result.rows as ColumnRow[]).map((row) => String(row.column_name)));
+    const names = new Set(result.rows.map((row) => String(row.column_name)));
     return {
       supportsLogoStorage: names.has("logo_url") && names.has("logo_alt"),
       supportsHeaderTitleSize: names.has("header_title_size_px"),
@@ -75,12 +75,12 @@ async function querySiteSettings(): Promise<SiteSettingsRow | null> {
   const db = getDb();
   
   try {
-    const capsResult = await db.execute(sql`
+    const capsResult = await db.execute<ColumnRow>(sql`
       select column_name
       from information_schema.columns
       where table_name = 'site_settings'
     `);
-    const cols = new Set((capsResult.rows as ColumnRow[]).map((r) => String(r.column_name)));
+    const cols = new Set(capsResult.rows.map((r) => String(r.column_name)));
     
     const selectFields: string[] = ["id"];
     const allExpected = [

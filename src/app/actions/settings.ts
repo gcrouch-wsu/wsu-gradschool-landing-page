@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { sql } from "drizzle-orm";
 import { z } from "zod";
 import { getDb } from "@/lib/db";
+import { siteSettings } from "@/lib/schema";
 import {
   DEFAULT_SITE_SETTINGS,
 } from "@/lib/settings";
@@ -160,73 +161,71 @@ type Capabilities = {
   supportsNewLogoHeaderFields: boolean;
 };
 
+type SiteSettingsInsert = typeof siteSettings.$inferInsert;
+
 async function saveSettings(settings: NormalizedSettings, caps: Capabilities) {
   const db = getDb();
-  
-  // Build columns and values dynamically to avoid "column does not exist" errors
-  const columns: string[] = ["id"];
-  const values: unknown[] = [1];
-  const updates: string[] = [];
 
-  const add = (col: string, val: unknown) => {
-    columns.push(`"${col}"`);
-    values.push(val);
-    updates.push(`"${col}" = excluded."${col}"`);
+  const values: SiteSettingsInsert = {
+    id: 1,
+    ...(caps.supportsLogoStorage
+      ? {
+          logoUrl: settings.logoUrl,
+          logoAlt: settings.logoAlt,
+        }
+      : {}),
+    ...(caps.supportsNewLogoHeaderFields
+      ? {
+          logoSizePx: settings.logoSizePx,
+          headerLayout: settings.headerLayout,
+        }
+      : {}),
+    ...(caps.supportsHeaderTitleSize
+      ? {
+          headerTitleSizePx: settings.headerTitleSizePx,
+        }
+      : {}),
+    brandLine1: settings.brandLine1,
+    brandLine2: settings.brandLine2,
+    headerTitle: settings.headerTitle,
+    headerSubtitle: settings.headerSubtitle,
+    heroTitle: settings.heroTitle,
+    heroLede: settings.heroLede,
+    emptyStateText: settings.emptyStateText,
+    manageAddTitle: settings.manageAddTitle,
+    manageAddBlurb: settings.manageAddBlurb,
+    manageOrderTitle: settings.manageOrderTitle,
+    manageOrderBlurb: settings.manageOrderBlurb,
+    manageEmptyDragText: settings.manageEmptyDragText,
+    loginTitle: settings.loginTitle,
+    loginLede: settings.loginLede,
+    loginBackLabel: settings.loginBackLabel,
+    colorPrimary: settings.colorPrimary,
+    colorPrimaryDark: settings.colorPrimaryDark,
+    colorText: settings.colorText,
+    colorTextMuted: settings.colorTextMuted,
+    colorBorder: settings.colorBorder,
+    colorPageBg: settings.colorPageBg,
+    colorCardBg: settings.colorCardBg,
+    colorCardAccent: settings.colorCardAccent,
+    colorUrlOnCard: settings.colorUrlOnCard,
+    cardRadiusPx: settings.cardRadiusPx,
+    cardShadow: settings.cardShadow,
+    updatedAt: settings.updatedAt,
   };
+  const updates = Object.fromEntries(
+    Object.entries(values).filter(([key]) => key !== "id"),
+  ) as Omit<SiteSettingsInsert, "id">;
 
-  if (caps.supportsLogoStorage) {
-    add("logo_url", settings.logoUrl);
-    add("logo_alt", settings.logoAlt);
-  }
-  if (caps.supportsNewLogoHeaderFields) {
-    add("logo_size_px", settings.logoSizePx);
-    add("header_layout", settings.headerLayout);
-  }
-  if (caps.supportsHeaderTitleSize) {
-    add("header_title_size_px", settings.headerTitleSizePx);
-  }
-
-  add("brand_line1", settings.brandLine1);
-  add("brand_line2", settings.brandLine2);
-  add("header_title", settings.headerTitle);
-  add("header_subtitle", settings.headerSubtitle);
-  add("hero_title", settings.heroTitle);
-  add("hero_lede", settings.heroLede);
-  add("empty_state_text", settings.emptyStateText);
-  add("manage_add_title", settings.manageAddTitle);
-  add("manage_add_blurb", settings.manageAddBlurb);
-  add("manage_order_title", settings.manageOrderTitle);
-  add("manage_order_blurb", settings.manageOrderBlurb);
-  add("manage_empty_drag_text", settings.manageEmptyDragText);
-  add("login_title", settings.loginTitle);
-  add("login_lede", settings.loginLede);
-  add("login_back_label", settings.loginBackLabel);
-  add("color_primary", settings.colorPrimary);
-  add("color_primary_dark", settings.colorPrimaryDark);
-  add("color_text", settings.colorText);
-  add("color_text_muted", settings.colorTextMuted);
-  add("color_border", settings.colorBorder);
-  add("color_page_bg", settings.colorPageBg);
-  add("color_card_bg", settings.colorCardBg);
-  add("color_card_accent", settings.colorCardAccent);
-  add("color_url_on_card", settings.colorUrlOnCard);
-  add("card_radius_px", settings.cardRadiusPx);
-  add("card_shadow", settings.cardShadow);
-  add("updated_at", settings.updatedAt);
-
-  const sqlQuery = sql.raw(`
-    insert into "site_settings" (${columns.join(", ")})
-    values (${values.map(() => "?").join(", ")})
-    on conflict ("id") do update set
-      ${updates.join(", ")}
-  `);
-
-  await db.execute(sqlQuery, values);
+  await db.insert(siteSettings).values(values).onConflictDoUpdate({
+    target: siteSettings.id,
+    set: updates,
+  });
 }
 
-interface ColumnRow {
+type ColumnRow = Record<string, unknown> & {
   column_name: string;
-}
+};
 
 export async function updateSiteSettingsAction(formData: FormData) {
   await requireSession();
@@ -275,12 +274,12 @@ export async function updateSiteSettingsAction(formData: FormData) {
   const normalized = buildNormalizedSettings(parsed.data);
 
   try {
-    const capsResult = await getDb().execute(sql`
+    const capsResult = await getDb().execute<ColumnRow>(sql`
       select column_name
       from information_schema.columns
       where table_name = 'site_settings'
     `);
-    const existingColumns = new Set((capsResult.rows as ColumnRow[]).map((r) => String(r.column_name)));
+    const existingColumns = new Set(capsResult.rows.map((r) => String(r.column_name)));
     
     const caps: Capabilities = {
       supportsLogoStorage: existingColumns.has("logo_url") && existingColumns.has("logo_alt"),
