@@ -1,10 +1,10 @@
-# App landing page
+# WSU gradschool landing page
 
 ## Purpose
 
-Directory of internal tools for Washington State University Graduate School. **Visitors** open the deployment URL and see a public grid of application cards (title, URL, optional description). **Editors** sign in at `/login`, then use **`/manage`** to add, remove, and drag-reorder cards. Data is stored in **Postgres** (shared for everyone who visits the site).
+Directory of internal tools for Washington State University Graduate School. **Visitors** open the deployment URL and see a public grid of application cards (title, URL, optional description). **Editors** sign in at `/login`, then use **`/manage` → Applications** to add, edit, remove, and drag-reorder cards. Data is stored in **Postgres** (shared for everyone who visits the site).
 
-Remote: [gcrouch-wsu/App-landing-page](https://github.com/gcrouch-wsu/App-landing-page)
+Remote: [gcrouch-wsu/wsu-gradschool-landing-page](https://github.com/gcrouch-wsu/wsu-gradschool-landing-page)
 
 ## Stack
 

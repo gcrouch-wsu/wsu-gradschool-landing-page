@@ -113,7 +113,7 @@ export async function updateApp(input: {
   actionLabel: string;
   url: string;
   description: string | null;
-}) {
+}): Promise<AppCard | null> {
   const db = getDb();
   const supportsActionLabel = await appCardsSupportActionLabel();
   const updateValues = {
@@ -137,6 +137,7 @@ export async function updateApp(input: {
         sortOrder: appCards.sortOrder,
         createdAt: appCards.createdAt,
       });
+    if (!row) return null;
     return {
       ...row,
       actionLabel: row.actionLabel?.trim() || "Open tool",
@@ -156,15 +157,20 @@ export async function updateApp(input: {
       createdAt: appCards.createdAt,
     });
 
+  if (!row) return null;
   return {
     ...row,
     actionLabel: input.actionLabel || "Open tool",
   };
 }
 
-export async function deleteApp(id: string) {
+export async function deleteApp(id: string): Promise<boolean> {
   const db = getDb();
-  await db.delete(appCards).where(eq(appCards.id, id));
+  const deleted = await db
+    .delete(appCards)
+    .where(eq(appCards.id, id))
+    .returning({ id: appCards.id });
+  return deleted.length > 0;
 }
 
 export async function updateSortOrders(pairs: { id: string; sortOrder: number }[]) {

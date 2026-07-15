@@ -39,7 +39,7 @@ import { SiteAppearanceForm } from "@/components/SiteAppearanceForm";
 import { APP_CARD_DESCRIPTION_MAX } from "@/lib/app-card-limits";
 import type { AppCard, SiteSettingsRow } from "@/lib/schema";
 
-type AdminTab = "appearance" | "add" | "order";
+type AdminTab = "appearance" | "apps" | "styling";
 
 function pickHeaderDisplaySettings(settings: SiteSettingsRow): HeaderDisplaySettings {
   return {
@@ -63,19 +63,19 @@ function pickHeaderDisplaySettings(settings: SiteSettingsRow): HeaderDisplaySett
 
 const adminTabs: { id: AdminTab; label: string; description: string }[] = [
   {
+    id: "apps",
+    label: "Applications",
+    description: "Add, edit, remove, and reorder directory cards",
+  },
+  {
     id: "appearance",
     label: "Page and appearance",
     description: "Branding, copy, colors, and login content",
   },
   {
-    id: "add",
-    label: "Add application",
-    description: "Create a new card for the public directory",
-  },
-  {
-    id: "order",
-    label: "Card order and styling",
-    description: "Reorder cards and tune the real card rendering",
+    id: "styling",
+    label: "Card styling",
+    description: "Tune colors, type, and spacing for public cards",
   },
 ];
 
@@ -271,7 +271,7 @@ export function ManageBoard({
   supportsLogoStorage: boolean;
 }) {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<AdminTab>("appearance");
+  const [activeTab, setActiveTab] = useState<AdminTab>("apps");
   const [items, setItems] = useState(initialApps);
   const [formError, setFormError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string[] | undefined>>({});
@@ -279,6 +279,7 @@ export function ManageBoard({
   const [addDescriptionLength, setAddDescriptionLength] = useState(0);
   const [listPending, startListTransition] = useTransition();
   const [removingId, setRemovingId] = useState<string | null>(null);
+  const [listBanner, setListBanner] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editValues, setEditValues] = useState({
     title: "",
@@ -312,10 +313,52 @@ export function ManageBoard({
     () => (editingId ? items.find((app) => app.id === editingId) ?? null : null),
     [editingId, items],
   );
-  const orderPanelTitle =
-    settings.manageOrderTitle === "Card order"
-      ? "Card order and styling"
-      : settings.manageOrderTitle;
+  const cardsPanelTitle = useMemo(() => {
+    const stored = settings.manageOrderTitle?.trim();
+    if (
+      !stored ||
+      stored === "Card order" ||
+      stored === "Card order and styling"
+    ) {
+      return "Your cards";
+    }
+    return stored;
+  }, [settings.manageOrderTitle]);
+
+  const cardsPanelBlurb = useMemo(() => {
+    const stored = settings.manageOrderBlurb?.trim();
+    if (
+      !stored ||
+      stored === "Drag by the handle. The order here matches the public landing page."
+    ) {
+      return "Edit or remove any card, or drag the handle to change the public page order.";
+    }
+    return stored;
+  }, [settings.manageOrderBlurb]);
+
+  const emptyCardsText = useMemo(() => {
+    const stored = settings.manageEmptyDragText?.trim();
+    if (!stored || stored === "No cards yet. Add one above.") {
+      return "No cards yet. Use the form below to add the first application.";
+    }
+    return stored;
+  }, [settings.manageEmptyDragText]);
+
+  const addPanelTitle = useMemo(() => {
+    const stored = settings.manageAddTitle?.trim();
+    return stored || "Add application";
+  }, [settings.manageAddTitle]);
+
+  const addPanelBlurb = useMemo(() => {
+    const stored = settings.manageAddBlurb?.trim();
+    if (
+      !stored ||
+      stored.includes("Reorder cards below")
+    ) {
+      return "Create a new directory card with a title, action label, URL, and optional description.";
+    }
+    return stored;
+  }, [settings.manageAddBlurb]);
 
   const syncFromServer = useCallback(() => {
     router.refresh();
@@ -324,6 +367,7 @@ export function ManageBoard({
   const beginEdit = useCallback((app: AppCard) => {
     setEditBanner(null);
     setEditFieldErrors({});
+    setListBanner(null);
     setEditingId(app.id);
     setEditValues({
       title: app.title,
@@ -360,17 +404,30 @@ export function ManageBoard({
     const oldIndex = items.findIndex((app) => app.id === active.id);
     const newIndex = items.findIndex((app) => app.id === over.id);
     if (oldIndex < 0 || newIndex < 0) return;
+    const previous = items;
     const next = arrayMove(items, oldIndex, newIndex);
     setItems(next);
+    setListBanner(null);
     startListTransition(async () => {
-      await reorderAppsAction(next.map((app) => app.id));
-      syncFromServer();
+      try {
+        const res = await reorderAppsAction(next.map((app) => app.id));
+        if (!res.ok) {
+          setItems(previous);
+          setListBanner(res.error || "Could not save the new order.");
+          return;
+        }
+        syncFromServer();
+      } catch {
+        setItems(previous);
+        setListBanner("Could not save the new order. Try again.");
+      }
     });
   };
 
   async function handleAdd(formData: FormData) {
     setFormError(null);
     setFieldErrors({});
+    setListBanner(null);
     setFormPending(true);
     try {
       const res = await createAppAction(formData);
@@ -386,28 +443,53 @@ export function ManageBoard({
         setFormError(typeof first === "string" ? first : "Could not save");
         return;
       }
+      setItems((prev) => [...prev, res.app]);
+      setListBanner(`Added “${res.app.title}”.`);
       syncFromServer();
       const form = document.getElementById("add-app-form") as HTMLFormElement | null;
       form?.reset();
       setAddDescriptionLength(0);
+    } catch {
+      setFormError("Could not save. Check your session and try again.");
     } finally {
       setFormPending(false);
     }
   }
 
   const handleRemove = (id: string) => {
+    const app = items.find((item) => item.id === id);
+    const label = app?.title ? `“${app.title}”` : "this card";
+    if (
+      typeof window !== "undefined" &&
+      !window.confirm(`Remove ${label} from the directory? This cannot be undone.`)
+    ) {
+      return;
+    }
+
     setRemovingId(id);
+    setListBanner(null);
     startListTransition(async () => {
-      await deleteAppAction(id);
-      setItems((prev) => prev.filter((app) => app.id !== id));
-      setRemovingId(null);
-      if (editingId === id) {
-        setEditingId(null);
-        setEditValues({ title: "", actionLabel: "Open tool", url: "", description: "" });
-        setEditFieldErrors({});
-        setEditBanner(null);
+      try {
+        const res = await deleteAppAction(id);
+        if (!res.ok) {
+          setListBanner(res.error || "Could not remove that card.");
+          setRemovingId(null);
+          return;
+        }
+        setItems((prev) => prev.filter((item) => item.id !== id));
+        if (editingId === id) {
+          setEditingId(null);
+          setEditValues({ title: "", actionLabel: "Open tool", url: "", description: "" });
+          setEditFieldErrors({});
+          setEditBanner(null);
+        }
+        setListBanner(`Removed ${label}.`);
+        syncFromServer();
+      } catch {
+        setListBanner("Could not remove that card. Check your session and try again.");
+      } finally {
+        setRemovingId(null);
       }
-      syncFromServer();
     });
   };
 
@@ -416,6 +498,7 @@ export function ManageBoard({
     if (!editingId) return;
     setEditBanner(null);
     setEditFieldErrors({});
+    setListBanner(null);
     setEditPending(true);
     try {
       const formData = new FormData(e.currentTarget);
@@ -442,6 +525,8 @@ export function ManageBoard({
       });
       setEditBanner("Card saved successfully.");
       syncFromServer();
+    } catch {
+      setEditBanner("Could not save. Check your session and try again.");
     } finally {
       setEditPending(false);
     }
@@ -499,39 +584,245 @@ export function ManageBoard({
 
         <section
           role="tabpanel"
-          id="admin-panel-appearance"
-          aria-labelledby="admin-tab-appearance"
-          hidden={activeTab !== "appearance"}
-          className={activeTab === "appearance" ? "block" : "hidden"}
-        >
-          <SiteAppearanceForm
-            key={settings.updatedAt?.valueOf() ?? "defaults"}
-            settings={settings}
-            supportsLogoStorage={supportsLogoStorage}
-            onHeaderSettingsChange={(nextSettings) =>
-              setLiveSettings((prev) => ({ ...prev, ...nextSettings }))
-            }
-          />
-        </section>
-
-        <section
-          role="tabpanel"
-          id="admin-panel-add"
-          aria-labelledby="admin-tab-add"
-          hidden={activeTab !== "add"}
-          className={activeTab === "add" ? "block" : "hidden"}
+          id="admin-panel-apps"
+          aria-labelledby="admin-tab-apps"
+          hidden={activeTab !== "apps"}
+          className={activeTab !== "apps" ? "hidden" : "space-y-6"}
         >
           <div className="rounded-[18px] bg-white p-6 shadow-[0_10px_28px_rgba(0,0,0,0.06)] ring-1 ring-black/5">
-            {settings.manageAddTitle ? (
-              <h2 className="mb-2 text-xl font-bold text-[var(--wsu-gray)]">
-                {settings.manageAddTitle}
-              </h2>
-            ) : null}
-            {settings.manageAddBlurb ? (
-              <p className="mb-4 whitespace-pre-wrap text-sm text-[var(--wsu-gray-mid)]">
-                {settings.manageAddBlurb}
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div className="max-w-2xl">
+                <h2 className="mb-2 text-xl font-bold text-[var(--wsu-gray)]">{cardsPanelTitle}</h2>
+                <p className="mb-3 whitespace-pre-wrap text-sm text-[var(--wsu-gray-mid)]">
+                  {cardsPanelBlurb}
+                </p>
+                <p className="text-sm text-[var(--wsu-gray-mid)]">
+                  Use <span className="font-semibold text-[var(--wsu-gray)]">Edit</span> to change
+                  a card, <span className="font-semibold text-[var(--wsu-gray)]">Remove</span> to
+                  delete it, or drag the handle to reorder.
+                </p>
+              </div>
+              <div className="flex flex-wrap items-center gap-3">
+                <div className="flex items-center gap-1 rounded-full bg-[var(--wsu-bg)] p-1 ring-1 ring-black/5">
+                  {([1, 2, 3] as const).map((n) => (
+                    <button
+                      key={n}
+                      type="button"
+                      onClick={() => handleColumnChange(n)}
+                      className={`rounded-full px-3.5 py-1.5 text-xs font-semibold transition ${
+                        gridColumns === n
+                          ? "bg-[var(--wsu-crimson)] text-white shadow-sm"
+                          : "text-[var(--wsu-gray-mid)] hover:bg-white hover:text-[var(--wsu-gray)]"
+                      }`}
+                    >
+                      {n} col{n > 1 ? "s" : ""}
+                    </button>
+                  ))}
+                </div>
+                <div className="rounded-full bg-[var(--wsu-bg)] px-3 py-1 text-xs font-semibold uppercase tracking-wide text-[var(--wsu-gray-mid)]">
+                  {items.length} card{items.length === 1 ? "" : "s"}
+                </div>
+              </div>
+            </div>
+
+            {listBanner ? (
+              <p
+                className={`mt-4 rounded-xl px-3 py-2 text-sm ${
+                  listBanner.startsWith("Added") || listBanner.startsWith("Removed")
+                    ? "bg-green-50 text-green-800"
+                    : "bg-red-50 text-red-800"
+                }`}
+              >
+                {listBanner}
               </p>
             ) : null}
+
+            {editingApp ? (
+              <form
+                onSubmit={handleEditSubmit}
+                className="mt-6 space-y-4 rounded-[16px] border border-[var(--wsu-crimson)]/20 bg-[var(--wsu-bg)]/70 p-4"
+              >
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <h3 className="text-base font-bold text-[var(--wsu-gray)]">
+                    Editing {editingApp.title}
+                  </h3>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEditingId(null);
+                      setEditValues({
+                        title: "",
+                        actionLabel: "Open tool",
+                        url: "",
+                        description: "",
+                      });
+                      setEditFieldErrors({});
+                      setEditBanner(null);
+                    }}
+                    className="rounded-full border border-[var(--wsu-gray-light)] bg-white px-4 py-2 text-sm font-semibold text-[var(--wsu-gray)] transition hover:bg-[var(--wsu-bg)]"
+                  >
+                    Close editor
+                  </button>
+                </div>
+
+                <input type="hidden" name="id" value={editingApp.id} />
+
+                {editBanner ? (
+                  <p
+                    className={`rounded-xl px-3 py-2 text-sm ${
+                      editBanner.includes("saved")
+                        ? "bg-green-50 text-green-800"
+                        : "bg-red-50 text-red-800"
+                    }`}
+                  >
+                    {editBanner}
+                  </p>
+                ) : null}
+
+                <div className="grid gap-4 lg:grid-cols-3">
+                  <div>
+                    <label
+                      htmlFor="edit-title"
+                      className="mb-1 block text-xs font-semibold uppercase tracking-wide text-[var(--wsu-gray-mid)]"
+                    >
+                      Title
+                    </label>
+                    <input
+                      id="edit-title"
+                      name="title"
+                      value={editValues.title}
+                      onChange={(e) =>
+                        setEditValues((prev) => ({ ...prev, title: e.target.value }))
+                      }
+                      className="w-full rounded-lg border border-[var(--wsu-gray-light)] bg-white px-3 py-2 text-sm outline-none ring-[var(--wsu-crimson)] focus:ring-2"
+                    />
+                    {editFieldErrors.title?.length ? (
+                      <p className="mt-1 text-xs text-red-600">{editFieldErrors.title[0]}</p>
+                    ) : null}
+                  </div>
+
+                  <div>
+                    <label
+                      htmlFor="edit-action-label"
+                      className="mb-1 block text-xs font-semibold uppercase tracking-wide text-[var(--wsu-gray-mid)]"
+                    >
+                      Action label
+                    </label>
+                    <input
+                      id="edit-action-label"
+                      name="actionLabel"
+                      value={editValues.actionLabel}
+                      onChange={(e) =>
+                        setEditValues((prev) => ({ ...prev, actionLabel: e.target.value }))
+                      }
+                      className="w-full rounded-lg border border-[var(--wsu-gray-light)] bg-white px-3 py-2 text-sm outline-none ring-[var(--wsu-crimson)] focus:ring-2"
+                    />
+                    {editFieldErrors.actionLabel?.length ? (
+                      <p className="mt-1 text-xs text-red-600">{editFieldErrors.actionLabel[0]}</p>
+                    ) : null}
+                  </div>
+
+                  <div>
+                    <label
+                      htmlFor="edit-url"
+                      className="mb-1 block text-xs font-semibold uppercase tracking-wide text-[var(--wsu-gray-mid)]"
+                    >
+                      URL
+                    </label>
+                    <input
+                      id="edit-url"
+                      name="url"
+                      value={editValues.url}
+                      onChange={(e) =>
+                        setEditValues((prev) => ({ ...prev, url: e.target.value }))
+                      }
+                      className="w-full rounded-lg border border-[var(--wsu-gray-light)] bg-white px-3 py-2 text-sm outline-none ring-[var(--wsu-crimson)] focus:ring-2"
+                    />
+                    {editFieldErrors.url?.length ? (
+                      <p className="mt-1 text-xs text-red-600">{editFieldErrors.url[0]}</p>
+                    ) : null}
+                  </div>
+                </div>
+
+                <div>
+                  <label
+                    htmlFor="edit-description"
+                    className="mb-1 block text-xs font-semibold uppercase tracking-wide text-[var(--wsu-gray-mid)]"
+                  >
+                    Description{" "}
+                    <span className="font-normal normal-case text-[var(--wsu-gray-mid)]">
+                      (optional)
+                    </span>
+                  </label>
+                  <textarea
+                    id="edit-description"
+                    name="description"
+                    rows={4}
+                    maxLength={APP_CARD_DESCRIPTION_MAX}
+                    value={editValues.description}
+                    onChange={(e) =>
+                      setEditValues((prev) => ({ ...prev, description: e.target.value }))
+                    }
+                    className="w-full resize-y rounded-lg border border-[var(--wsu-gray-light)] bg-white px-3 py-2 text-sm outline-none ring-[var(--wsu-crimson)] focus:ring-2"
+                  />
+                  <p className="mt-1 text-xs text-[var(--wsu-gray-mid)]">
+                    {editValues.description.length}/{APP_CARD_DESCRIPTION_MAX} characters. Cards
+                    show about six lines before the action label.
+                  </p>
+                  {editFieldErrors.description?.length ? (
+                    <p className="mt-1 text-xs text-red-600">{editFieldErrors.description[0]}</p>
+                  ) : null}
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={editPending}
+                  className="rounded-full bg-[var(--wsu-crimson)] px-5 py-2 text-sm font-semibold text-white hover:bg-[var(--wsu-crimson-dark)] disabled:opacity-60"
+                >
+                  {editPending ? "Saving..." : "Save card changes"}
+                </button>
+              </form>
+            ) : null}
+
+            <div className="mt-4 min-h-[200px] rounded-[12px] border-2 border-dashed border-[var(--wsu-gray-mid)]/35 bg-[var(--wsu-bg)]/80 p-4">
+              {items.length === 0 ? (
+                <p className="py-8 text-center text-sm text-[var(--wsu-gray-mid)]">{emptyCardsText}</p>
+              ) : (
+                <DndContext
+                  sensors={sensors}
+                  collisionDetection={closestCenter}
+                  onDragEnd={handleDragEnd}
+                >
+                  <SortableContext items={ids} strategy={sortStrategy}>
+                    <ul
+                      className={`m-0 list-none gap-3 p-0 ${
+                        gridColumns > 1 ? `grid ${gridCls}` : "flex flex-col"
+                      }`}
+                    >
+                      {items.map((app) => (
+                        <li key={app.id} className={gridColumns > 1 ? "h-full" : ""}>
+                          <SortableRow
+                            app={app}
+                            editing={editingId === app.id}
+                            gridMode={gridColumns > 1}
+                            onEdit={beginEdit}
+                            onRemove={handleRemove}
+                            removing={removingId === app.id && listPending}
+                          />
+                        </li>
+                      ))}
+                    </ul>
+                  </SortableContext>
+                </DndContext>
+              )}
+            </div>
+          </div>
+
+          <div className="rounded-[18px] bg-white p-6 shadow-[0_10px_28px_rgba(0,0,0,0.06)] ring-1 ring-black/5">
+            <h2 className="mb-2 text-xl font-bold text-[var(--wsu-gray)]">{addPanelTitle}</h2>
+            <p className="mb-4 whitespace-pre-wrap text-sm text-[var(--wsu-gray-mid)]">
+              {addPanelBlurb}
+            </p>
 
             <form id="add-app-form" action={handleAdd} className="space-y-3">
               <div>
@@ -631,280 +922,50 @@ export function ManageBoard({
 
         <section
           role="tabpanel"
-          id="admin-panel-order"
-          aria-labelledby="admin-tab-order"
-          hidden={activeTab !== "order"}
-          className={activeTab === "order" ? "block" : "hidden"}
+          id="admin-panel-appearance"
+          aria-labelledby="admin-tab-appearance"
+          hidden={activeTab !== "appearance"}
+          className={activeTab === "appearance" ? "block" : "hidden"}
         >
-          <div className="space-y-6">
-            <section className="rounded-[18px] border border-[var(--wsu-gray-light)] bg-[var(--wsu-bg)]/65 p-6 ring-1 ring-black/5">
-              <div className="flex flex-wrap items-start justify-between gap-4">
-                <div className="max-w-2xl">
-                  <h3 className="text-lg font-bold text-[var(--wsu-gray)]">
-                    Live public card rendering
-                  </h3>
-                  <p className="mt-1 text-sm leading-6 text-[var(--wsu-gray-mid)]">
-                    Choose how many columns the public page uses. Drag cards below to
-                    reorder within the selected layout.
-                  </p>
-                </div>
-                <div className="flex items-center gap-1 rounded-full bg-white p-1 shadow-sm ring-1 ring-black/5">
-                  {([1, 2, 3] as const).map((n) => (
-                    <button
-                      key={n}
-                      type="button"
-                      onClick={() => handleColumnChange(n)}
-                      className={`rounded-full px-3.5 py-1.5 text-xs font-semibold transition ${
-                        gridColumns === n
-                          ? "bg-[var(--wsu-crimson)] text-white shadow-sm"
-                          : "text-[var(--wsu-gray-mid)] hover:bg-[var(--wsu-bg)] hover:text-[var(--wsu-gray)]"
-                      }`}
-                    >
-                      {n} col{n > 1 ? "s" : ""}
-                    </button>
-                  ))}
-                </div>
-              </div>
+          <SiteAppearanceForm
+            key={settings.updatedAt?.valueOf() ?? "defaults"}
+            settings={settings}
+            supportsLogoStorage={supportsLogoStorage}
+            onHeaderSettingsChange={(nextSettings) =>
+              setLiveSettings((prev) => ({ ...prev, ...nextSettings }))
+            }
+          />
+        </section>
 
-              <div className={`mt-6 grid gap-5 ${gridCls}`}>
-                {previewApps.map((app) => (
-                  <AppTile key={`preview-${app.id}`} app={app} href={app.url} />
-                ))}
-              </div>
-            </section>
-
-            <CardStyleForm
-              key={`card-style-${settings.updatedAt?.valueOf() ?? "defaults"}`}
-              settings={settings}
-              onCardSettingsChange={(nextSettings) =>
-                setLiveSettings((prev) => ({ ...prev, ...nextSettings }))
-              }
-            />
-
-            <section className="rounded-[18px] border border-[var(--wsu-gray-light)] bg-white p-6 shadow-[0_10px_28px_rgba(0,0,0,0.06)] ring-1 ring-black/5">
-              <div className="flex flex-wrap items-start justify-between gap-3">
-                <div className="max-w-2xl">
-                  <h3 className="text-lg font-bold text-[var(--wsu-gray)]">Edit existing cards</h3>
-                  <p className="mt-1 text-sm leading-6 text-[var(--wsu-gray-mid)]">
-                    Choose a card from the drag-and-drop list below to edit its title, action
-                    label, URL, or description. Reordering is still handled separately in that same
-                    list.
-                  </p>
-                </div>
-                {editingApp ? (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setEditingId(null);
-                      setEditValues({
-                        title: "",
-                        actionLabel: "Open tool",
-                        url: "",
-                        description: "",
-                      });
-                      setEditFieldErrors({});
-                      setEditBanner(null);
-                    }}
-                    className="rounded-full border border-[var(--wsu-gray-light)] px-4 py-2 text-sm font-semibold text-[var(--wsu-gray)] transition hover:bg-[var(--wsu-bg)]"
-                  >
-                    Close editor
-                  </button>
-                ) : null}
-              </div>
-
-              {editingApp ? (
-                <form onSubmit={handleEditSubmit} className="mt-6 space-y-4">
-                  <input type="hidden" name="id" value={editingApp.id} />
-
-                  {editBanner ? (
-                    <p
-                      className={`rounded-xl px-3 py-2 text-sm ${
-                        editBanner.includes("saved")
-                          ? "bg-green-50 text-green-800"
-                          : "bg-red-50 text-red-800"
-                      }`}
-                    >
-                      {editBanner}
-                    </p>
-                  ) : null}
-
-                  <div className="grid gap-4 lg:grid-cols-3">
-                    <div>
-                      <label
-                        htmlFor="edit-title"
-                        className="mb-1 block text-xs font-semibold uppercase tracking-wide text-[var(--wsu-gray-mid)]"
-                      >
-                        Title
-                      </label>
-                      <input
-                        id="edit-title"
-                        name="title"
-                        value={editValues.title}
-                        onChange={(e) =>
-                          setEditValues((prev) => ({ ...prev, title: e.target.value }))
-                        }
-                        className="w-full rounded-lg border border-[var(--wsu-gray-light)] px-3 py-2 text-sm outline-none ring-[var(--wsu-crimson)] focus:ring-2"
-                      />
-                      {editFieldErrors.title?.length ? (
-                        <p className="mt-1 text-xs text-red-600">{editFieldErrors.title[0]}</p>
-                      ) : null}
-                    </div>
-
-                    <div>
-                      <label
-                        htmlFor="edit-action-label"
-                        className="mb-1 block text-xs font-semibold uppercase tracking-wide text-[var(--wsu-gray-mid)]"
-                      >
-                        Action label
-                      </label>
-                      <input
-                        id="edit-action-label"
-                        name="actionLabel"
-                        value={editValues.actionLabel}
-                        onChange={(e) =>
-                          setEditValues((prev) => ({ ...prev, actionLabel: e.target.value }))
-                        }
-                        className="w-full rounded-lg border border-[var(--wsu-gray-light)] px-3 py-2 text-sm outline-none ring-[var(--wsu-crimson)] focus:ring-2"
-                      />
-                      {editFieldErrors.actionLabel?.length ? (
-                        <p className="mt-1 text-xs text-red-600">
-                          {editFieldErrors.actionLabel[0]}
-                        </p>
-                      ) : null}
-                    </div>
-
-                    <div>
-                      <label
-                        htmlFor="edit-url"
-                        className="mb-1 block text-xs font-semibold uppercase tracking-wide text-[var(--wsu-gray-mid)]"
-                      >
-                        URL
-                      </label>
-                      <input
-                        id="edit-url"
-                        name="url"
-                        value={editValues.url}
-                        onChange={(e) =>
-                          setEditValues((prev) => ({ ...prev, url: e.target.value }))
-                        }
-                        className="w-full rounded-lg border border-[var(--wsu-gray-light)] px-3 py-2 text-sm outline-none ring-[var(--wsu-crimson)] focus:ring-2"
-                      />
-                      {editFieldErrors.url?.length ? (
-                        <p className="mt-1 text-xs text-red-600">{editFieldErrors.url[0]}</p>
-                      ) : null}
-                    </div>
-                  </div>
-
-                  <div>
-                    <label
-                      htmlFor="edit-description"
-                      className="mb-1 block text-xs font-semibold uppercase tracking-wide text-[var(--wsu-gray-mid)]"
-                    >
-                      Description{" "}
-                      <span className="font-normal normal-case text-[var(--wsu-gray-mid)]">
-                        (optional)
-                      </span>
-                    </label>
-                    <textarea
-                      id="edit-description"
-                      name="description"
-                      rows={4}
-                      maxLength={APP_CARD_DESCRIPTION_MAX}
-                      value={editValues.description}
-                      onChange={(e) =>
-                        setEditValues((prev) => ({ ...prev, description: e.target.value }))
-                      }
-                      className="w-full resize-y rounded-lg border border-[var(--wsu-gray-light)] px-3 py-2 text-sm outline-none ring-[var(--wsu-crimson)] focus:ring-2"
-                    />
-                    <p className="mt-1 text-xs text-[var(--wsu-gray-mid)]">
-                      {editValues.description.length}/{APP_CARD_DESCRIPTION_MAX} characters. Cards
-                      show about six lines before the action label.
-                    </p>
-                    {editFieldErrors.description?.length ? (
-                      <p className="mt-1 text-xs text-red-600">
-                        {editFieldErrors.description[0]}
-                      </p>
-                    ) : null}
-                  </div>
-
-                  <div className="flex flex-wrap items-center gap-3">
-                    <button
-                      type="submit"
-                      disabled={editPending}
-                      className="rounded-full bg-[var(--wsu-crimson)] px-5 py-2 text-sm font-semibold text-white hover:bg-[var(--wsu-crimson-dark)] disabled:opacity-60"
-                    >
-                      {editPending ? "Saving..." : "Save card changes"}
-                    </button>
-                    <span className="text-sm text-[var(--wsu-gray-mid)]">
-                      Editing <span className="font-semibold text-[var(--wsu-gray)]">{editingApp.title}</span>
-                    </span>
-                  </div>
-                </form>
-              ) : (
-                <p className="mt-6 rounded-[16px] bg-[var(--wsu-bg)] px-4 py-4 text-sm leading-6 text-[var(--wsu-gray-mid)] ring-1 ring-black/5">
-                  Click <span className="font-semibold text-[var(--wsu-gray)]">Edit</span> on any
-                  card in the list below to open the existing card editor.
-                </p>
-              )}
-            </section>
-
-            <div className="rounded-[18px] bg-white p-6 shadow-[0_10px_28px_rgba(0,0,0,0.06)] ring-1 ring-black/5">
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <div>
-                  {orderPanelTitle ? (
-                    <h2 className="mb-2 text-xl font-bold text-[var(--wsu-gray)]">
-                      {orderPanelTitle}
-                    </h2>
-                  ) : null}
-                  {settings.manageOrderBlurb ? (
-                    <p className="mb-3 whitespace-pre-wrap text-sm text-[var(--wsu-gray-mid)]">
-                      {settings.manageOrderBlurb}
-                    </p>
-                  ) : null}
-                  <p className="text-sm text-[var(--wsu-gray-mid)]">
-                    Drag the handle to reorder cards. This still controls the live public page
-                    order.
-                  </p>
-                </div>
-                <div className="rounded-full bg-[var(--wsu-bg)] px-3 py-1 text-xs font-semibold uppercase tracking-wide text-[var(--wsu-gray-mid)]">
-                  {items.length} card{items.length === 1 ? "" : "s"}
-                </div>
-              </div>
-
-              <div className="mt-4 min-h-[200px] rounded-[12px] border-2 border-dashed border-[var(--wsu-gray-mid)]/35 bg-[var(--wsu-bg)]/80 p-4">
-                {items.length === 0 ? (
-                  settings.manageEmptyDragText ? (
-                    <p className="py-8 text-center text-sm text-[var(--wsu-gray-mid)]">
-                      {settings.manageEmptyDragText}
-                    </p>
-                  ) : null
-                ) : (
-                  <DndContext
-                    sensors={sensors}
-                    collisionDetection={closestCenter}
-                    onDragEnd={handleDragEnd}
-                  >
-                    <SortableContext items={ids} strategy={sortStrategy}>
-                      <ul className={`m-0 list-none gap-3 p-0 ${gridColumns > 1 ? `grid ${gridCls}` : "flex flex-col"}`}>
-                        {items.map((app) => (
-                          <li key={app.id} className={gridColumns > 1 ? "h-full" : ""}>
-                            <SortableRow
-                              app={app}
-                              editing={editingId === app.id}
-                              gridMode={gridColumns > 1}
-                              onEdit={beginEdit}
-                              onRemove={handleRemove}
-                              removing={removingId === app.id && listPending}
-                            />
-                          </li>
-                        ))}
-                      </ul>
-                    </SortableContext>
-                  </DndContext>
-                )}
-              </div>
+        <section
+          role="tabpanel"
+          id="admin-panel-styling"
+          aria-labelledby="admin-tab-styling"
+          hidden={activeTab !== "styling"}
+          className={activeTab !== "styling" ? "hidden" : "space-y-6"}
+        >
+          <section className="rounded-[18px] border border-[var(--wsu-gray-light)] bg-[var(--wsu-bg)]/65 p-6 ring-1 ring-black/5">
+            <div className="max-w-2xl">
+              <h3 className="text-lg font-bold text-[var(--wsu-gray)]">Live card preview</h3>
+              <p className="mt-1 text-sm leading-6 text-[var(--wsu-gray-mid)]">
+                Styling changes below update this preview. Column count and card content are
+                managed on the Applications tab.
+              </p>
             </div>
-          </div>
+            <div className={`mt-6 grid gap-5 ${gridCls}`}>
+              {previewApps.map((app) => (
+                <AppTile key={`preview-${app.id}`} app={app} href={app.url} />
+              ))}
+            </div>
+          </section>
+
+          <CardStyleForm
+            key={`card-style-${settings.updatedAt?.valueOf() ?? "defaults"}`}
+            settings={settings}
+            onCardSettingsChange={(nextSettings) =>
+              setLiveSettings((prev) => ({ ...prev, ...nextSettings }))
+            }
+          />
         </section>
       </div>
     </>

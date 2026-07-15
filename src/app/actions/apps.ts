@@ -58,7 +58,7 @@ export async function createAppAction(formData: FormData) {
     return { ok: false as const, error: parsed.error.flatten().fieldErrors };
   }
   const nextOrder = (await getMaxSortOrder()) + 1;
-  await insertApp({
+  const app = await insertApp({
     title: parsed.data.title,
     actionLabel: parsed.data.actionLabel,
     url: parsed.data.url,
@@ -67,14 +67,17 @@ export async function createAppAction(formData: FormData) {
   });
   revalidatePath("/");
   revalidatePath("/manage");
-  return { ok: true as const };
+  return { ok: true as const, app };
 }
 
 export async function deleteAppAction(id: string) {
   await requireSession();
   const uuid = z.string().uuid().safeParse(id);
   if (!uuid.success) return { ok: false as const, error: "Invalid id" };
-  await deleteApp(uuid.data);
+  const deleted = await deleteApp(uuid.data);
+  if (!deleted) {
+    return { ok: false as const, error: "That card was already removed." };
+  }
   revalidatePath("/");
   revalidatePath("/manage");
   return { ok: true as const };
@@ -106,6 +109,13 @@ export async function updateAppAction(formData: FormData) {
     url: parsed.data.url,
     description: parsed.data.description ?? null,
   });
+
+  if (!app) {
+    return {
+      ok: false as const,
+      error: { id: ["That card no longer exists. Refresh and try again."] },
+    };
+  }
 
   revalidatePath("/");
   revalidatePath("/manage");

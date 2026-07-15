@@ -23,10 +23,10 @@ export const DEFAULT_SITE_SETTINGS: SiteSettingsRow = {
   emptyStateText: "No applications yet. Use Manage apps to add the first card.",
   manageAddTitle: "Add application",
   manageAddBlurb:
-    "Add a title, action label, and URL for each application. Descriptions and branding are optional. Reorder cards below and changes save automatically.",
-  manageOrderTitle: "Card order and styling",
-  manageOrderBlurb: "Drag by the handle. The order here matches the public landing page.",
-  manageEmptyDragText: "No cards yet. Add one above.",
+    "Create a new directory card with a title, action label, URL, and optional description.",
+  manageOrderTitle: "Your cards",
+  manageOrderBlurb: "Edit or remove any card, or drag the handle to change the public page order.",
+  manageEmptyDragText: "No cards yet. Use the form below to add the first application.",
   loginTitle: "Sign in to manage the directory",
   loginLede:
     "Use the shared admin password to edit cards, update branding, and manage the header logo. You will land on the manage page after you sign in.",

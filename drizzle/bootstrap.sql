@@ -58,6 +58,7 @@ CREATE TABLE IF NOT EXISTS "site_settings" (
   "card_accent_height_px" integer DEFAULT 6 NOT NULL,
   "card_radius_px" integer DEFAULT 10 NOT NULL,
   "card_shadow" text DEFAULT 'md' NOT NULL,
+  "grid_columns" integer DEFAULT 3 NOT NULL,
   "updated_at" timestamp with time zone DEFAULT now()
 );
 
@@ -110,7 +111,8 @@ INSERT INTO "site_settings" (
   "card_padding_px",
   "card_accent_height_px",
   "card_radius_px",
-  "card_shadow"
+  "card_shadow",
+  "grid_columns"
 ) VALUES (
   1,
   NULL,
@@ -132,10 +134,10 @@ INSERT INTO "site_settings" (
   'This directory is public. Use Manage apps to sign in and update links, descriptions, ordering, and branding.',
   'No applications yet. Use Manage apps to add the first card.',
   'Add application',
-  'Add a title, action label, and URL for each application. Descriptions and branding are optional. Reorder cards below and changes save automatically.',
-  'Card order and styling',
-  'Drag by the handle. The order here matches the public landing page.',
-  'No cards yet. Add one above.',
+  'Create a new directory card with a title, action label, URL, and optional description.',
+  'Your cards',
+  'Edit or remove any card, or drag the handle to change the public page order.',
+  'No cards yet. Use the form below to add the first application.',
   'Sign in to manage the directory',
   'Use the shared admin password to edit cards, update branding, and manage the header logo. You will land on the manage page after you sign in.',
   'Back to directory',
@@ -160,6 +162,7 @@ INSERT INTO "site_settings" (
   20,
   6,
   10,
-  'md'
+  'md',
+  3
 )
 ON CONFLICT ("id") DO NOTHING;

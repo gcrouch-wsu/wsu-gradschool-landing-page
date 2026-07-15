@@ -274,7 +274,7 @@ export function SiteAppearanceForm({
           <h2 className="text-lg font-bold text-[var(--wsu-gray)]">Page and appearance</h2>
           <p className="mt-1 text-sm leading-6 text-[var(--wsu-gray-mid)]">
             Update the public page, login screen, and header branding from one place. Card
-            styling lives in the Card order and styling tab.
+            styling lives in the Card styling tab; card content lives in Applications.
           </p>
         </div>
         <div className="max-w-sm rounded-[18px] bg-[var(--wsu-bg)] px-4 py-3 text-sm leading-6 text-[var(--wsu-gray-mid)] ring-1 ring-black/5">
