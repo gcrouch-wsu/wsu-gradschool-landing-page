@@ -19,7 +19,7 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useMemo, useState, useTransition } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import {
   createAppAction,
   deleteAppAction,
@@ -143,11 +143,16 @@ function SortableRow({
       <div
         ref={setNodeRef}
         style={style}
-        className={`flex h-full flex-col rounded-[18px] p-2 ${
-          editing ? "bg-[var(--wsu-bg)] ring-1 ring-[var(--wsu-crimson)]/20" : ""
+        className={`flex h-full flex-col rounded-[18px] p-2 transition-all ${
+          editing ? "bg-[var(--wsu-bg)] ring-2 ring-[var(--wsu-crimson)] shadow-md" : ""
         }`}
       >
-        <div className="min-h-0 flex-1">
+        <div className="relative min-h-0 flex-1">
+          {editing ? (
+            <div className="absolute right-2 top-2 z-10 rounded-full bg-[var(--wsu-crimson)] px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-white shadow-sm">
+              Editing
+            </div>
+          ) : null}
           <AppTile app={app} />
         </div>
         <div className="mt-2 flex items-center gap-2">
@@ -170,7 +175,7 @@ function SortableRow({
                 : "border-[var(--wsu-gray-light)] text-[var(--wsu-gray)] hover:bg-[var(--wsu-bg)]"
             }`}
           >
-            {editing ? "Editing" : "Edit"}
+            {editing ? "Close Editor" : "Edit"}
           </button>
           <button
             type="button"
@@ -189,8 +194,8 @@ function SortableRow({
     <div
       ref={setNodeRef}
       style={style}
-      className={`flex gap-2 rounded-[18px] p-2 ${
-        editing ? "bg-[var(--wsu-bg)] ring-1 ring-[var(--wsu-crimson)]/20" : ""
+      className={`flex gap-2 rounded-[18px] p-2 transition-all ${
+        editing ? "bg-[var(--wsu-bg)] ring-2 ring-[var(--wsu-crimson)] shadow-md" : ""
       }`}
     >
       <button
@@ -202,7 +207,12 @@ function SortableRow({
       >
         <span className="font-mono text-lg leading-none text-[var(--wsu-gray-mid)]">::</span>
       </button>
-      <div className="min-w-0 flex-1">
+      <div className="relative min-w-0 flex-1">
+        {editing ? (
+          <div className="absolute right-2 top-2 z-10 rounded-full bg-[var(--wsu-crimson)] px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-white shadow-sm">
+            Editing
+          </div>
+        ) : null}
         <AppTile app={app} />
       </div>
       <button
@@ -214,7 +224,7 @@ function SortableRow({
             : "border-[var(--wsu-gray-light)] text-[var(--wsu-gray)] hover:bg-[var(--wsu-bg)]"
         }`}
       >
-        {editing ? "Editing" : "Edit"}
+        {editing ? "Close Editor" : "Edit"}
       </button>
       <button
         type="button"
@@ -281,6 +291,8 @@ export function ManageBoard({
   const [removingId, setRemovingId] = useState<string | null>(null);
   const [listBanner, setListBanner] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const editorRef = useRef<HTMLFormElement | null>(null);
+  const editTitleInputRef = useRef<HTMLInputElement | null>(null);
   const [editValues, setEditValues] = useState({
     title: "",
     actionLabel: "Open tool",
@@ -364,18 +376,37 @@ export function ManageBoard({
     router.refresh();
   }, [router]);
 
-  const beginEdit = useCallback((app: AppCard) => {
-    setEditBanner(null);
-    setEditFieldErrors({});
-    setListBanner(null);
-    setEditingId(app.id);
-    setEditValues({
-      title: app.title,
-      actionLabel: app.actionLabel,
-      url: app.url,
-      description: app.description ?? "",
-    });
-  }, []);
+  const beginEdit = useCallback(
+    (app: AppCard) => {
+      if (editingId === app.id) {
+        setEditingId(null);
+        setEditValues({ title: "", actionLabel: "Open tool", url: "", description: "" });
+        setEditFieldErrors({});
+        setEditBanner(null);
+        return;
+      }
+      setEditBanner(null);
+      setEditFieldErrors({});
+      setListBanner(null);
+      setEditingId(app.id);
+      setEditValues({
+        title: app.title,
+        actionLabel: app.actionLabel,
+        url: app.url,
+        description: app.description ?? "",
+      });
+
+      setTimeout(() => {
+        if (editorRef.current) {
+          editorRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
+        }
+        if (editTitleInputRef.current) {
+          editTitleInputRef.current.focus();
+        }
+      }, 50);
+    },
+    [editingId],
+  );
 
   const handleColumnChange = useCallback(
     (cols: number) => {
@@ -639,13 +670,25 @@ export function ManageBoard({
 
             {editingApp ? (
               <form
+                ref={editorRef}
                 onSubmit={handleEditSubmit}
-                className="mt-6 space-y-4 rounded-[16px] border border-[var(--wsu-crimson)]/20 bg-[var(--wsu-bg)]/70 p-4"
+                onKeyDown={(e) => {
+                  if (e.key === "Escape") {
+                    setEditingId(null);
+                    setEditValues({ title: "", actionLabel: "Open tool", url: "", description: "" });
+                    setEditFieldErrors({});
+                    setEditBanner(null);
+                  }
+                }}
+                className="mt-6 space-y-4 rounded-[16px] border border-[var(--wsu-crimson)]/30 bg-[var(--wsu-bg)]/90 p-5 shadow-sm ring-1 ring-[var(--wsu-crimson)]/10"
               >
                 <div className="flex flex-wrap items-center justify-between gap-3">
-                  <h3 className="text-base font-bold text-[var(--wsu-gray)]">
-                    Editing {editingApp.title}
-                  </h3>
+                  <div className="flex items-center gap-2">
+                    <span className="flex h-2.5 w-2.5 rounded-full bg-[var(--wsu-crimson)] animate-pulse" />
+                    <h3 className="text-base font-bold text-[var(--wsu-gray)]">
+                      Editing “{editingApp.title}”
+                    </h3>
+                  </div>
                   <button
                     type="button"
                     onClick={() => {
@@ -659,7 +702,7 @@ export function ManageBoard({
                       setEditFieldErrors({});
                       setEditBanner(null);
                     }}
-                    className="rounded-full border border-[var(--wsu-gray-light)] bg-white px-4 py-2 text-sm font-semibold text-[var(--wsu-gray)] transition hover:bg-[var(--wsu-bg)]"
+                    className="rounded-full border border-[var(--wsu-gray-light)] bg-white px-4 py-1.5 text-xs font-semibold text-[var(--wsu-gray)] transition hover:bg-[var(--wsu-bg)]"
                   >
                     Close editor
                   </button>
@@ -688,6 +731,7 @@ export function ManageBoard({
                       Title
                     </label>
                     <input
+                      ref={editTitleInputRef}
                       id="edit-title"
                       name="title"
                       value={editValues.title}
@@ -774,13 +818,32 @@ export function ManageBoard({
                   ) : null}
                 </div>
 
-                <button
-                  type="submit"
-                  disabled={editPending}
-                  className="rounded-full bg-[var(--wsu-crimson)] px-5 py-2 text-sm font-semibold text-white hover:bg-[var(--wsu-crimson-dark)] disabled:opacity-60"
-                >
-                  {editPending ? "Saving..." : "Save card changes"}
-                </button>
+                <div className="flex items-center gap-3">
+                  <button
+                    type="submit"
+                    disabled={editPending}
+                    className="rounded-full bg-[var(--wsu-crimson)] px-5 py-2 text-sm font-semibold text-white hover:bg-[var(--wsu-crimson-dark)] disabled:opacity-60"
+                  >
+                    {editPending ? "Saving..." : "Save card changes"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEditingId(null);
+                      setEditValues({
+                        title: "",
+                        actionLabel: "Open tool",
+                        url: "",
+                        description: "",
+                      });
+                      setEditFieldErrors({});
+                      setEditBanner(null);
+                    }}
+                    className="rounded-full border border-[var(--wsu-gray-light)] bg-white px-5 py-2 text-sm font-semibold text-[var(--wsu-gray)] transition hover:bg-[var(--wsu-bg)]"
+                  >
+                    Cancel
+                  </button>
+                </div>
               </form>
             ) : null}
 
